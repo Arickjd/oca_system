@@ -1,0 +1,50 @@
+[
+  {
+    "id": "9805506b-592a-47ac-9119-ccaf3998df78",
+    "nome": "Bebida Alcoólica",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "782c4f25-d62a-4b8f-8f08-9fdc8cd937b7",
+    "nome": "Bebida Não Alcoólica",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "a126c71b-11c4-479c-b9db-148e17e757d5",
+    "nome": "Condimentos/Molhos",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "69bf8038-0288-4e67-bc1c-19f8287b1eeb",
+    "nome": "Diversos",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "f2022834-e81f-4e08-b3dd-ab9822aa63e0",
+    "nome": "Embalagens/Descartáveis",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "87c64bec-883d-49e7-8e2c-0bf22b82924c",
+    "nome": "Mercearia/Doces/Snacks",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "a3ce9879-556b-45da-be5a-2a7dbefae7f7",
+    "nome": "Outros",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  },
+  {
+    "id": "48369cf3-a912-41dc-b6e9-451a0152b8fb",
+    "nome": "Tabacaria",
+    "ativo": true,
+    "created_at": "2026-07-14T00:06:26.448Z"
+  }
+]

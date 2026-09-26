@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f4f5f7;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: #111827;
+  font-family:
+    system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Melhor toque em mobile */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Esconde a barra de rolagem horizontal dos chips de categoria */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------- Impressão do recibo ------------------------- */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .recibo {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+}

@@ -1,0 +1,179 @@
+[
+  {
+    "id": "1180b0ae-5ce8-4c55-8040-ec22fb63fcfb",
+    "numero": 1,
+    "cliente_nome": "",
+    "telefone": "",
+    "observacao": "",
+    "itens": [
+      {
+        "id": "2ec06bd7-83e0-4ed2-a775-faee9b2e86da",
+        "produto_id": "eb2f962a-eb4d-4008-9896-1a5491aa7f23",
+        "produto_nome": "PAPEL ALUMINIO 45CM X 7,5 PADRAO",
+        "modo": "unidade",
+        "quantidade": 5,
+        "preco_unitario": 6,
+        "subtotal": 30
+      },
+      {
+        "id": "5c4e676e-e88f-419c-85e2-e646d32dbcec",
+        "produto_id": "bfbabf7f-7677-4c2c-bb93-77a05c82322f",
+        "produto_nome": "PITU 600ML PADRAO",
+        "modo": "pacote",
+        "quantidade": 1,
+        "preco_unitario": 48,
+        "subtotal": 48
+      },
+      {
+        "id": "11c7b5ef-7e59-471d-ab3f-1fa4ac208c6e",
+        "produto_id": "b9de04d8-2c3b-4b01-8b2d-44a7533da941",
+        "produto_nome": "MOLHO SHOYU TAMBAU 750ML PADRAO",
+        "modo": "pacote",
+        "quantidade": 3,
+        "preco_unitario": 60,
+        "subtotal": 180
+      }
+    ],
+    "valor_total": 258,
+    "status": "novo",
+    "created_at": "2026-07-14T00:37:19.131Z"
+  },
+  {
+    "id": "69b9f073-874c-4ea1-9d77-44f461432825",
+    "numero": 2,
+    "cliente_nome": "gisele",
+    "telefone": "",
+    "observacao": "",
+    "itens": [
+      {
+        "id": "6f947932-f85b-4fe4-81ca-cc0f7ef4f667",
+        "produto_id": "07c220e0-da73-4c68-91a5-2ded307249f9",
+        "produto_nome": "AZEITONA COM CAROÇO 3KG PADRAO",
+        "modo": "unidade",
+        "quantidade": 3,
+        "preco_unitario": 55,
+        "subtotal": 165
+      },
+      {
+        "id": "8e9a3211-f02f-4dd9-af95-d670f4be1f0c",
+        "produto_id": "0d768360-9dc5-4f32-9560-6529a90c034e",
+        "produto_nome": "CATCHUP LANCHEIRO SACHE PADRAO",
+        "modo": "unidade",
+        "quantidade": 3,
+        "preco_unitario": 9,
+        "subtotal": 27
+      },
+      {
+        "id": "bce40ccf-b2c8-4843-a83c-e7524e4819d3",
+        "produto_id": "11c393af-dd5e-41cd-8431-51b0d2af5d35",
+        "produto_nome": "MOLHO PIZZA TAMBAU 1,7KG PADRAO",
+        "modo": "unidade",
+        "quantidade": 1,
+        "preco_unitario": 12,
+        "subtotal": 12
+      },
+      {
+        "id": "f6a01d96-2abb-4f61-897d-1e49ee04c5ec",
+        "produto_id": "11c393af-dd5e-41cd-8431-51b0d2af5d35",
+        "produto_nome": "MOLHO PIZZA TAMBAU 1,7KG PADRAO",
+        "modo": "pacote",
+        "quantidade": 2,
+        "preco_unitario": 72,
+        "subtotal": 144
+      }
+    ],
+    "valor_total": 348,
+    "status": "novo",
+    "created_at": "2026-07-14T16:16:04.812Z"
+  },
+  {
+    "id": "a65a2320-b6d3-41cc-a87e-99ec2806695b",
+    "numero": 3,
+    "cliente_nome": "",
+    "telefone": "",
+    "observacao": "",
+    "itens": [
+      {
+        "id": "579ff4ec-e0ba-425e-8d93-63e6e485145d",
+        "produto_id": "baa39b1f-45b5-4260-bf5e-ae2cf2943d53",
+        "produto_nome": "CIGARRO ROTHMANS GLOBAL PADRAO",
+        "modo": "pacote",
+        "quantidade": 1,
+        "preco_unitario": 60,
+        "subtotal": 60
+      },
+      {
+        "id": "5a5d39de-9cd0-44b2-842e-0070e8f1f0da",
+        "produto_id": "bbf79219-9006-4c4a-bc09-2c144610c12f",
+        "produto_nome": "CATCHUP TAMBAU 3KG PADRAO",
+        "modo": "pacote",
+        "quantidade": 2,
+        "preco_unitario": 150,
+        "subtotal": 300
+      }
+    ],
+    "valor_total": 360,
+    "status": "novo",
+    "created_at": "2026-07-15T19:25:39.868Z"
+  },
+  {
+    "id": "4a70029b-a313-401e-bf50-88ed2979e23a",
+    "numero": 4,
+    "cliente_nome": "",
+    "telefone": "",
+    "observacao": "",
+    "itens": [
+      {
+        "id": "f43c2a7e-8234-42bf-a723-8c6264947a06",
+        "produto_id": "a92a68d9-e21b-4449-8de6-6edceea2fdd6",
+        "produto_nome": "BANDEJA B1 EMBALAGENS",
+        "modo": "unidade",
+        "quantidade": 1,
+        "preco_unitario": 9,
+        "subtotal": 9
+      },
+      {
+        "id": "c176b8c8-1d16-4790-941b-92fb8945d107",
+        "produto_id": "5d868034-1d60-4a91-b0ce-5d3055d0ebcd",
+        "produto_nome": "CAIXA DE PIZZA N30 PADRAO",
+        "modo": "unidade",
+        "quantidade": 1,
+        "preco_unitario": 3,
+        "subtotal": 3
+      },
+      {
+        "id": "e61f1a16-255d-4978-b9b1-de3055a7c9df",
+        "produto_id": "36c01f7c-e29c-4b28-86b7-4ce3777f1844",
+        "produto_nome": "CAIXA DE PIZZA N35 PADRAO",
+        "modo": "unidade",
+        "quantidade": 1,
+        "preco_unitario": 32,
+        "subtotal": 32
+      }
+    ],
+    "valor_total": 44,
+    "status": "novo",
+    "created_at": "2026-07-20T13:39:28.852Z"
+  },
+  {
+    "id": "43d12ecd-8e61-48bc-9797-60fb8b858092",
+    "numero": 5,
+    "cliente_nome": "",
+    "telefone": "",
+    "observacao": "",
+    "itens": [
+      {
+        "id": "9bdf1671-2859-438e-843d-d30970882f61",
+        "produto_id": "df31b260-66ed-43de-b6e8-2b4df20e6e65",
+        "produto_nome": "BRAHMA LATA 350ML PADRAO",
+        "modo": "unidade",
+        "quantidade": 1,
+        "preco_unitario": 40,
+        "subtotal": 40
+      }
+    ],
+    "valor_total": 40,
+    "status": "novo",
+    "created_at": "2026-07-20T14:29:21.826Z"
+  }
+]
