@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { SalvarProduto } from "@/components/SalvarProduto";
 import { useCart } from "@/lib/cart";
-import { formatBRL, modoLabel } from "@/lib/format";
+import { formatBRL } from "@/lib/format";
 
 export default function CarrinhoPage() {
-  const { itens, totalValor, totalItens, definirQuantidade, remover, carregado } =
-    useCart();
+  const {
+    itens,
+    totalValor,
+    totalItens,
+    atualizarItem,
+    definirQuantidade,
+    remover,
+    carregado,
+  } = useCart();
 
   if (!carregado) {
     return <div className="py-16 text-center text-slate-400 text-sm">Carregando…</div>;
@@ -46,7 +54,7 @@ export default function CarrinhoPage() {
   return (
     <div className="flex flex-col gap-4 pb-4">
       <h1 className="text-xl font-bold text-slate-900">
-        Carrinho{" "}
+        Pedido no atacado{" "}
         <span className="text-slate-400 font-normal text-base">
           ({totalItens} {totalItens === 1 ? "item" : "itens"})
         </span>
@@ -56,24 +64,24 @@ export default function CarrinhoPage() {
         {itens.map((item) => {
           const subtotal = item.preco_unitario * item.quantidade;
           return (
+            <SalvarProduto key={item.produto_id} item={item}>
             <div
-              key={`${item.produto_id}:${item.modo}`}
-              className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col gap-3"
+              key={item.produto_id}
+              className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-slate-900 text-sm leading-tight">
-                    {item.nome}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {modoLabel(item.modo, item.pack_quantidade)} ·{" "}
-                    {formatBRL(item.preco_unitario)}
+                <div>
+                  <h2 className="font-semibold text-slate-900 text-sm">
+                    Item do pedido
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Altere os dados deste item se necessário.
                   </p>
                 </div>
                 <button
                   type="button"
                   aria-label="Remover"
-                  onClick={() => remover(item.produto_id, item.modo)}
+                  onClick={() => remover(item.produto_id)}
                   className="text-slate-400 hover:text-red-500 shrink-0 p-1"
                 >
                   <svg
@@ -89,45 +97,111 @@ export default function CarrinhoPage() {
                 </button>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1 rounded-lg bg-slate-100">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-slate-500">Produto</span>
+                <input
+                  value={item.nome}
+                  onChange={(event) =>
+                    atualizarItem(item.produto_id, { nome: event.target.value })
+                  }
+                  className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-900 outline-none focus:border-amber-500"
+                />
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-500">
+                    Preço por pacote
+                  </span>
+                  <div className="flex items-center rounded-xl border border-slate-200 focus-within:border-amber-500">
+                    <span className="pl-3 text-sm text-slate-400">R$</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      value={item.preco_unitario}
+                      onChange={(event) =>
+                        atualizarItem(item.produto_id, {
+                          preco_unitario: Number(event.target.value),
+                        })
+                      }
+                      className="min-w-0 w-full bg-transparent px-2 py-2.5 text-sm font-semibold text-slate-900 outline-none"
+                    />
+                  </div>
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-500">
+                    Itens por pacote
+                  </span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    step="1"
+                    value={item.pack_quantidade}
+                    onChange={(event) =>
+                      atualizarItem(item.produto_id, {
+                        pack_quantidade: Number(event.target.value),
+                      })
+                    }
+                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-500"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-slate-500">
+                    Quantidade de pacotes
+                  </span>
+                  <div className="flex items-center gap-1 rounded-lg bg-slate-100">
                   <button
                     type="button"
                     aria-label="Diminuir"
                     onClick={() =>
-                      definirQuantidade(
-                        item.produto_id,
-                        item.modo,
-                        item.quantidade - 1
-                      )
+                      definirQuantidade(item.produto_id, item.quantidade - 1)
                     }
                     className="w-9 h-9 grid place-items-center text-xl font-bold text-slate-600 active:scale-90 transition"
                   >
                     −
                   </button>
-                  <span className="w-8 text-center font-semibold text-slate-900 tabular-nums">
-                    {item.quantidade}
-                  </span>
+                    <input
+                      aria-label="Quantidade de pacotes"
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      step="1"
+                      value={item.quantidade}
+                      onChange={(event) =>
+                        atualizarItem(item.produto_id, {
+                          quantidade: Number(event.target.value),
+                        })
+                      }
+                      className="w-12 bg-transparent text-center font-semibold text-slate-900 tabular-nums outline-none"
+                    />
                   <button
                     type="button"
                     aria-label="Aumentar"
                     onClick={() =>
-                      definirQuantidade(
-                        item.produto_id,
-                        item.modo,
-                        item.quantidade + 1
-                      )
+                      definirQuantidade(item.produto_id, item.quantidade + 1)
                     }
                     className="w-9 h-9 grid place-items-center text-xl font-bold text-amber-600 active:scale-90 transition"
                   >
                     +
                   </button>
+                  </div>
                 </div>
-                <span className="font-semibold text-slate-900 tabular-nums">
-                  {formatBRL(subtotal)}
-                </span>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Subtotal</p>
+                  <span className="font-bold text-slate-900 tabular-nums">
+                    {formatBRL(subtotal)}
+                  </span>
+                </div>
               </div>
             </div>
+            </SalvarProduto>
           );
         })}
       </div>

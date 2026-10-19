@@ -1,0 +1,41 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
+const Module = require("node:module");
+const ts = require("typescript");
+
+async function main() {
+  const root = process.cwd();
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), "oca-test-"));
+  try {
+    const source = await fs.readFile(path.join(root, "src/lib/db.ts"), "utf8");
+    process.chdir(temp);
+    await fs.mkdir("data");
+    await fs.writeFile("data/produtos.json", "[]");
+    const mod = new Module(path.join(root, "src/lib/db.cjs"), module);
+    mod.filename = path.join(root, "src/lib/db.cjs");
+    mod.paths = module.paths;
+    mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
+    const db = mod.exports;
+    const produto = await db.criarProduto({ nome: "Teste", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
+    await db.atualizarProduto(produto.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });
+    assert.equal((await db.getProduto(produto.id)).nome, "Atualizado");
+    const input = { itens: [{ produto_id: produto.id, produto_nome: "Snapshot", modo: "pacote", quantidade: 3, pack_quantidade: 12, preco_unitario: 15 }] };
+    await Promise.all(Array.from({ length: 20 }, () => db.createPedido(input)));
+    const pedidos = await db.getPedidos();
+    assert.equal(pedidos.length, 20);
+    assert.equal(new Set(pedidos.map(p => p.numero)).size, 20);
+    assert.ok(pedidos.every(p => p.valor_total === 45));
+    await db.atualizarProduto(produto.id, { nome: "Outro nome", preco_pack: 25, pack_quantidade: 6 });
+    assert.equal((await db.getPedidos())[0].itens[0].produto_nome, "Snapshot");
+    await fs.writeFile("data/pedidos.json", "{invalid");
+    await assert.rejects(() => db.createPedido(input));
+    assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");
+    console.log("OK: cadastro, edição, 20 pedidos simultâneos, histórico e proteção contra JSON corrompido.");
+  } finally {
+    process.chdir(root);
+    await fs.rm(temp, { recursive: true, force: true });
+  }
+}
+main().catch(error => { console.error(error); process.exitCode = 1; });

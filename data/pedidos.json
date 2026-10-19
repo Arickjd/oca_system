@@ -175,5 +175,49 @@
     "valor_total": 40,
     "status": "novo",
     "created_at": "2026-07-20T14:29:21.826Z"
+  },
+  {
+    "id": "802663ac-8f65-40a9-bf25-455fe2b0046f",
+    "numero": 6,
+    "cliente_nome": "Claudio",
+    "telefone": "2199999999",
+    "observacao": "endereço",
+    "itens": [
+      {
+        "id": "f5ec6f22-12bc-407e-ad32-38e50e2a25bc",
+        "produto_id": "1624cca8-0e37-4a7f-b52b-82d879d22447",
+        "produto_nome": "CATCHUP LANCHEIRO 3KG",
+        "modo": "pacote",
+        "pack_quantidade": 6,
+        "quantidade": 3,
+        "preco_unitario": 78,
+        "subtotal": 234
+      }
+    ],
+    "valor_total": 234,
+    "status": "novo",
+    "created_at": "2026-10-19T13:54:12.521Z"
+  },
+  {
+    "id": "9ef1a107-92b4-41ba-92ff-c40245fd30b2",
+    "numero": 7,
+    "cliente_nome": "arick",
+    "telefone": "21212121",
+    "observacao": "entregar amanha",
+    "itens": [
+      {
+        "id": "f2a99319-773e-49a3-b731-41253f00c319",
+        "produto_id": "36c01f7c-e29c-4b28-86b7-4ce3777f1844",
+        "produto_nome": "CAIXA DE PIZZA N35",
+        "modo": "pacote",
+        "pack_quantidade": 6,
+        "quantidade": 1,
+        "preco_unitario": 192,
+        "subtotal": 192
+      }
+    ],
+    "valor_total": 192,
+    "status": "novo",
+    "created_at": "2026-10-19T14:23:13.409Z"
   }
 ]

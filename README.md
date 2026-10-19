@@ -1,10 +1,11 @@
 # OCA Distribuidora — Sistema de Orçamentos
 
-Aplicação web **mobile-first** para a OCA Distribuidora montar pedidos rapidamente pelo
-celular, gerar um **orçamento em formato A4 (recibo)** e encaminhá-lo para separação —
-sem controle de estoque nesta primeira versão.
+Aplicação web **mobile-first** para o dono da OCA Distribuidora montar pedidos de
+atacado pelo celular e gerar um **orçamento em formato A4 (recibo)** — sem perfis de
+usuário, painel administrativo ou controle de estoque.
 
-Implementa a especificação em [`Especificacao_Distribuidora_Bebidas.md`](Especificacao_Distribuidora_Bebidas.md).
+Baseada na especificação em [`Especificacao_Distribuidora_Bebidas.md`](Especificacao_Distribuidora_Bebidas.md),
+com o fluxo simplificado para uso interno do proprietário.
 
 ## Stack
 
@@ -28,29 +29,16 @@ npm run build
 npm run start
 ```
 
-### Acesso ao painel administrativo
-
-- URL: `/admin`
-- Senha padrão: **`oca2024`** (configurável via variável de ambiente)
-
-Copie `.env.example` para `.env.local` e ajuste:
-
-```
-ADMIN_PASSWORD=suaSenhaForte
-AUTH_SECRET=umValorAleatorioLongo
-```
-
 ## Estrutura
 
 ```
 src/
   app/
-    (loja)/           # área do cliente: catálogo, carrinho, checkout
+    (loja)/           # catálogo, edição do pedido e checkout
     orcamento/[id]/   # recibo A4 (imprimir / PDF / WhatsApp / compartilhar)
-    admin/            # login + painel (início, pedidos, produtos, categorias, config)
-    api/              # rotas de API (produtos, categorias, pedidos, auth, config)
-  components/         # UI (catálogo, cards, painel, etc.)
-  lib/                # tipos, banco (db.ts), config, auth, formatação, carrinho
+    api/              # leitura do catálogo/configuração e registro de pedidos
+  components/         # interface do catálogo e do pedido
+  lib/                # tipos, banco, configuração, formatação e carrinho
 data/                 # "banco de dados" em JSON (produtos, categorias, pedidos, config)
 scripts/seed.mjs      # importa produtos.txt -> JSON
 ```
@@ -60,18 +48,14 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 | Requisito | Onde |
 |-----------|------|
 | RF01/RF02 – Catálogo com filtro por categoria e busca | `/` |
-| RF03–RF06 – Carrinho: adicionar, alterar qtd, remover, total | `/carrinho` |
+| Carrinho: editar nome, preço, quantidade e tamanho do pacote | `/carrinho` |
 | RF07 – Registrar pedido | `/checkout` → `POST /api/pedidos` |
 | RF08/RF09 – Gerar e baixar orçamento (A4, imprimir/salvar PDF) | `/orcamento/[id]` |
 | RF15 – Compartilhar pedido (WhatsApp / Web Share) | `/orcamento/[id]` |
-| RF10 – Acesso administrativo | `/admin` |
-| RF11 – Gerenciar produtos (criar/editar/excluir) | `/admin/produtos` |
-| RF12 – Gerenciar categorias | `/admin/categorias` |
-| RF13/RF14 – Gerenciar pedidos e alterar status | `/admin/pedidos` |
 
-Cada produto possui **preço unitário** e **preço do pacote** (ex.: 6x); no catálogo é
-possível adicionar tanto por unidade quanto por pacote. Nenhum campo de cliente é
-obrigatório, conforme a especificação.
+Cada produto possui somente **preço de atacado por pacote**. Depois de adicioná-lo,
+o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
+pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
 
 ## Observação sobre hospedagem
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
-import { formatBRL, modoLabel } from "@/lib/format";
+import { formatBRL } from "@/lib/format";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -44,7 +44,8 @@ export default function CheckoutPage() {
           itens: itens.map((i) => ({
             produto_id: i.produto_id,
             produto_nome: i.nome,
-            modo: i.modo,
+            modo: "pacote",
+            pack_quantidade: i.pack_quantidade,
             quantidade: i.quantidade,
             preco_unitario: i.preco_unitario,
           })),
@@ -110,7 +111,7 @@ export default function CheckoutPage() {
         <ul className="flex flex-col divide-y divide-slate-100">
           {itens.map((i) => (
             <li
-              key={`${i.produto_id}:${i.modo}`}
+              key={i.produto_id}
               className="py-2 flex items-start justify-between gap-3 text-sm"
             >
               <span className="min-w-0">
@@ -119,7 +120,8 @@ export default function CheckoutPage() {
                 </span>{" "}
                 {i.nome}
                 <span className="block text-xs text-slate-400">
-                  {modoLabel(i.modo, i.pack_quantidade)}
+                  Atacado · {i.pack_quantidade} itens por pacote ·{" "}
+                  {formatBRL(i.preco_unitario)} por pacote
                 </span>
               </span>
               <span className="tabular-nums text-slate-700 shrink-0">

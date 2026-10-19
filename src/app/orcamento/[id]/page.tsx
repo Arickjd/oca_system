@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getPedido } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import {
   formatBRL,
   formatData,
-  modoLabel,
   montarMensagemWhatsApp,
   linkWhatsApp,
 } from "@/lib/format";
@@ -27,6 +27,7 @@ export default async function OrcamentoPage({ params }: Params) {
       {/* Barra de ações (não imprime) */}
       <div className="no-print sticky top-0 z-20 bg-slate-100/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-[210mm] mx-auto px-3 py-3">
+          <Link href="/orcamentos" className="inline-block mb-3 text-sm underline">Todos os orçamentos</Link>
           <ReciboAcoes
             whatsappUrl={whatsappUrl}
             shareTitle={`${config.distribuidora_nome} — Orçamento #${pedido.numero}`}
@@ -100,7 +101,10 @@ export default async function OrcamentoPage({ params }: Params) {
                       <span className="font-medium">{it.produto_nome}</span>
                       {it.modo === "pacote" && (
                         <span className="block text-xs text-slate-400">
-                          Pacote
+                          Atacado · pacote
+                          {it.pack_quantidade
+                            ? ` com ${it.pack_quantidade} itens`
+                            : ""}
                         </span>
                       )}
                     </td>

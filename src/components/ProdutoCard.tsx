@@ -34,7 +34,7 @@ function Stepper({
   );
 }
 
-function ModeControl({
+function WholesaleControl({
   label,
   preco,
   qtd,
@@ -80,29 +80,14 @@ export function ProdutoCard({
   categoriaNome?: string;
 }) {
   const { quantidadeDe, adicionar, definirQuantidade } = useCart();
-  const qtdUn = quantidadeDe(produto.id, "unidade");
-  const qtdPack = quantidadeDe(produto.id, "pacote");
-
-  const addUnidade = () =>
-    adicionar({
-      produto_id: produto.id,
-      nome: produto.nome,
-      modo: "unidade",
-      preco_unitario: produto.preco,
-      pack_quantidade: produto.pack_quantidade,
-      unidade: produto.unidade,
-      imagem_url: produto.imagem_url,
-      quantidade: 1,
-    });
+  const qtdPack = quantidadeDe(produto.id);
 
   const addPacote = () =>
     adicionar({
       produto_id: produto.id,
       nome: produto.nome,
-      modo: "pacote",
       preco_unitario: produto.preco_pack,
       pack_quantidade: produto.pack_quantidade,
-      unidade: produto.unidade,
       imagem_url: produto.imagem_url,
       quantidade: 1,
     });
@@ -142,20 +127,13 @@ export function ProdutoCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <ModeControl
-          label={`Unidade / ${produto.unidade}`}
-          preco={produto.preco}
-          qtd={qtdUn}
-          onAdd={addUnidade}
-          onChange={(q) => definirQuantidade(produto.id, "unidade", q)}
-        />
-        <ModeControl
-          label={`Pacote ${produto.pack_quantidade}x`}
+      <div>
+        <WholesaleControl
+          label={`Atacado · pacote com ${produto.pack_quantidade}`}
           preco={produto.preco_pack}
           qtd={qtdPack}
           onAdd={addPacote}
-          onChange={(q) => definirQuantidade(produto.id, "pacote", q)}
+          onChange={(q) => definirQuantidade(produto.id, q)}
         />
       </div>
     </div>
