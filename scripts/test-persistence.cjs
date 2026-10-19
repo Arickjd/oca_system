@@ -16,6 +16,7 @@ async function main() {
     const mod = new Module(path.join(root, "src/lib/db.cjs"), module);
     mod.filename = path.join(root, "src/lib/db.cjs");
     mod.paths = module.paths;
+    mod.require = name => name === "./postgres" ? { usarPostgres: () => false } : require(name);
     mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
     const db = mod.exports;
     const produto = await db.criarProduto({ nome: "Teste", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });

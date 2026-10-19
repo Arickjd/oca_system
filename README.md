@@ -12,13 +12,12 @@ com o fluxo simplificado para uso interno do proprietário.
 - **Next.js 15** (App Router) + **React 19** + **TypeScript**
 - **Tailwind CSS v4**
 - **API Routes** do Next.js (backend)
-- **Banco de dados em arquivos JSON** (`data/`), populado a partir de `produtos.txt`
+- **PostgreSQL (Neon)** para Vercel, com JSON local como alternativa no desenvolvimento.
 
 ## Como rodar
 
 ```bash
 npm install
-npm run seed      # gera data/produtos.json e data/categorias.json a partir de produtos.txt
 npm run dev       # desenvolvimento em http://localhost:3000
 ```
 
@@ -39,7 +38,7 @@ src/
     api/              # leitura do catálogo/configuração e registro de pedidos
   components/         # interface do catálogo e do pedido
   lib/                # tipos, banco, configuração, formatação e carrinho
-data/                 # "banco de dados" em JSON (produtos, categorias, pedidos, config)
+data/                 # dados locais e fonte da importação inicial para PostgreSQL
 scripts/seed.mjs      # importa produtos.txt -> JSON
 ```
 
@@ -59,14 +58,11 @@ pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigató
 
 ## Observação sobre hospedagem
 
-O banco usa **arquivos JSON** no diretório `data/` (conforme a arquitetura do MVP).
-Em plataformas *serverless* (ex.: **Vercel**) o sistema de arquivos é **efêmero** — as
-escrituras (novos pedidos, edições) **não persistem** entre requisições/deploys.
+Siga [DEPLOY.md](DEPLOY.md) para conectar Neon à Vercel, configurar
+`DATABASE_URL` e executar `npm run db:migrate` uma vez antes de publicar.
+Produtos e orçamentos ficam no PostgreSQL e sobrevivem a novos deploys.
+A migração preserva os dados existentes e não roda durante o build.
 
-Para persistência real em produção, use uma das opções:
-
-1. Hospedar em um servidor com filesystem persistente (VPS, Render, Railway, etc.); ou
-2. Trocar a camada de dados (isolada em [`src/lib/db.ts`](src/lib/db.ts)) por um banco
-   gerenciado (Postgres, SQLite, Vercel KV/Blob, etc.).
-
-Como toda a leitura/escrita passa por `src/lib/db.ts`, a migração fica restrita a esse arquivo.
+Localmente, sem DATABASE_URL, a aplicação usa os JSONs de data/.
+Na Vercel, DATABASE_URL é obrigatória. Nunca há fallback para arquivos temporários.
+Não execute o seed para iniciar o projeto: ele substitui o catálogo JSON local.
