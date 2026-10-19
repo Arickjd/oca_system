@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import * as postgres from "./postgres";
 import type {
   Categoria,
   ItemPedido,
@@ -8,9 +9,8 @@ import type {
   Produto,
 } from "./types";
 
-// Banco de dados simples baseado em arquivos JSON (conforme arquitetura MVP).
-// Observação: em hospedagem serverless (ex: Vercel) o filesystem é efêmero;
-// para persistência real use um servidor dedicado/VPS ou um volume persistente.
+// PostgreSQL quando DATABASE_URL estiver configurada; JSON apenas para uso local.
+// Na Vercel, uma configuração ausente interrompe a operação em vez de perder dados.
 
 const DATA_DIR = path.join(process.cwd(), "data");
 
@@ -19,6 +19,10 @@ async function ensureDir() {
 }
 
 export async function readData<T>(file: string, fallback: T): Promise<T> {
+  if (postgres.usarPostgres()) {
+    if (file === "config.json") return (await postgres.buscar<T>("config", "principal")) ?? fallback;
+    return await postgres.listar<T extends (infer U)[] ? U : never>(file.replace(".json", "")) as T;
+  }
   try {
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
     return JSON.parse(raw) as T;
@@ -32,6 +36,7 @@ export async function readData<T>(file: string, fallback: T): Promise<T> {
 let writeChain: Promise<unknown> = Promise.resolve();
 
 export function writeData(file: string, data: unknown): Promise<void> {
+  if (postgres.usarPostgres()) throw new Error("Gravação de arquivos desabilitada com PostgreSQL.");
   const run = writeChain.then(async () => {
     await ensureDir();
     const dest = path.join(DATA_DIR, file);
@@ -57,11 +62,13 @@ export async function getProdutos(): Promise<Produto[]> {
 }
 
 export async function getProduto(id: string): Promise<Produto | undefined> {
+  if (postgres.usarPostgres()) return postgres.buscar<Produto>("produtos", id);
   const prods = await getProdutos();
   return prods.find((p) => p.id === id);
 }
 
 export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id">>) {
+  if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
@@ -79,6 +86,9 @@ export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" |
 /* ------------------------------- Pedidos ------------------------------ */
 
 export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id">) {
+  if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
+    ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
+  });
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
@@ -99,6 +109,7 @@ export async function getPedidos(): Promise<Pedido[]> {
 }
 
 export async function getPedido(id: string): Promise<Pedido | undefined> {
+  if (postgres.usarPostgres()) return postgres.buscar<Pedido>("pedidos", id);
   const pedidos = await getPedidos();
   return pedidos.find((p) => p.id === id);
 }
@@ -121,7 +132,8 @@ export interface NovoPedido {
 
 export async function createPedido(input: NovoPedido): Promise<Pedido> {
   const run = writeChain.then(async () => {
-  const pedidos = await readData<Pedido[]>("pedidos.json", []);
+  const remoto = postgres.usarPostgres();
+  const pedidos = remoto ? [] : await readData<Pedido[]>("pedidos.json", []);
   const numero =
     pedidos.reduce((max, p) => Math.max(max, p.numero || 0), 0) + 1;
 
@@ -158,6 +170,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     created_at: new Date().toISOString(),
   };
 
+  if (remoto) return postgres.inserirPedido(novo);
   pedidos.push(novo);
   await ensureDir();
   const dest = path.join(DATA_DIR, "pedidos.json");
