@@ -4,7 +4,7 @@ import { CartProvider } from "@/lib/cart";
 
 export const metadata: Metadata = {
   title: "OCA Distribuidora",
-  description: "Monte seu pedido e gere o orçamento — OCA Distribuidora",
+  description: "Monte pedidos no atacado e gere orçamentos — OCA Distribuidora",
 };
 
 export const viewport: Viewport = {

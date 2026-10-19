@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { CartBar } from "@/components/CartBar";
 import { getConfig } from "@/lib/config";
@@ -20,11 +19,6 @@ export default async function LojaLayout({
           {config.distribuidora_nome}
         </p>
         {config.distribuidora_contato && <p>{config.distribuidora_contato}</p>}
-        <p className="mt-3">
-          <Link href="/admin" className="text-slate-400 hover:underline">
-            Painel administrativo
-          </Link>
-        </p>
       </footer>
       <CartBar />
     </div>

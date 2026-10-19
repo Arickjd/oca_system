@@ -5,7 +5,6 @@ import type {
   Categoria,
   ItemPedido,
   Pedido,
-  PedidoStatus,
   Produto,
 } from "./types";
 
@@ -23,8 +22,9 @@ export async function readData<T>(file: string, fallback: T): Promise<T> {
   try {
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
     return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return fallback;
+    throw error;
   }
 }
 
@@ -50,46 +50,6 @@ export async function getCategorias(): Promise<Categoria[]> {
   return readData<Categoria[]>("categorias.json", []);
 }
 
-export async function getCategoria(id: string): Promise<Categoria | undefined> {
-  const cats = await getCategorias();
-  return cats.find((c) => c.id === id);
-}
-
-export async function createCategoria(
-  input: Pick<Categoria, "nome"> & Partial<Categoria>
-): Promise<Categoria> {
-  const cats = await getCategorias();
-  const nova: Categoria = {
-    id: randomUUID(),
-    nome: input.nome.trim(),
-    ativo: input.ativo ?? true,
-    created_at: new Date().toISOString(),
-  };
-  cats.push(nova);
-  await writeData("categorias.json", cats);
-  return nova;
-}
-
-export async function updateCategoria(
-  id: string,
-  patch: Partial<Categoria>
-): Promise<Categoria | undefined> {
-  const cats = await getCategorias();
-  const idx = cats.findIndex((c) => c.id === id);
-  if (idx === -1) return undefined;
-  cats[idx] = { ...cats[idx], ...patch, id: cats[idx].id };
-  await writeData("categorias.json", cats);
-  return cats[idx];
-}
-
-export async function deleteCategoria(id: string): Promise<boolean> {
-  const cats = await getCategorias();
-  const next = cats.filter((c) => c.id !== id);
-  if (next.length === cats.length) return false;
-  await writeData("categorias.json", next);
-  return true;
-}
-
 /* ------------------------------ Produtos ------------------------------ */
 
 export async function getProdutos(): Promise<Produto[]> {
@@ -101,51 +61,36 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function createProduto(
-  input: Partial<Produto> & Pick<Produto, "nome">
-): Promise<Produto> {
-  const prods = await getProdutos();
-  const novo: Produto = {
-    id: randomUUID(),
-    codigo: input.codigo ?? "",
-    nome: input.nome.trim(),
-    descricao: input.descricao ?? "",
-    preco: Number(input.preco ?? 0),
-    preco_pack: Number(input.preco_pack ?? 0),
-    pack_quantidade: Number(input.pack_quantidade ?? 6),
-    unidade: input.unidade ?? "un",
-    imagem_url: input.imagem_url ?? "",
-    categoria_id: input.categoria_id ?? "",
-    ativo: input.ativo ?? true,
-    created_at: new Date().toISOString(),
-  };
-  prods.push(novo);
-  await writeData("produtos.json", prods);
-  return novo;
-}
-
-export async function updateProduto(
-  id: string,
-  patch: Partial<Produto>
-): Promise<Produto | undefined> {
-  const prods = await getProdutos();
-  const idx = prods.findIndex((p) => p.id === id);
-  if (idx === -1) return undefined;
-  const { id: _ignore, created_at: _c, ...rest } = patch;
-  prods[idx] = { ...prods[idx], ...rest };
-  await writeData("produtos.json", prods);
-  return prods[idx];
-}
-
-export async function deleteProduto(id: string): Promise<boolean> {
-  const prods = await getProdutos();
-  const next = prods.filter((p) => p.id !== id);
-  if (next.length === prods.length) return false;
-  await writeData("produtos.json", next);
-  return true;
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id">>) {
+  const run = writeChain.then(async () => {
+    const dest = path.join(DATA_DIR, "produtos.json");
+    const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
+    const produto = produtos.find((p) => p.id === id);
+    if (!produto) return undefined;
+    Object.assign(produto, patch);
+    await fs.writeFile(`${dest}.tmp`, JSON.stringify(produtos, null, 2), "utf8");
+    await fs.rename(`${dest}.tmp`, dest);
+    return produto;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
 }
 
 /* ------------------------------- Pedidos ------------------------------ */
+
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id">) {
+  const run = writeChain.then(async () => {
+    const dest = path.join(DATA_DIR, "produtos.json");
+    const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
+    const produto: Produto = { ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString() };
+    produtos.push(produto);
+    await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return produto;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
 
 export async function getPedidos(): Promise<Pedido[]> {
   const pedidos = await readData<Pedido[]>("pedidos.json", []);
@@ -162,6 +107,7 @@ export interface NovoItem {
   produto_id: string;
   produto_nome: string;
   modo: "unidade" | "pacote";
+  pack_quantidade?: number;
   quantidade: number;
   preco_unitario: number;
 }
@@ -174,6 +120,7 @@ export interface NovoPedido {
 }
 
 export async function createPedido(input: NovoPedido): Promise<Pedido> {
+  const run = writeChain.then(async () => {
   const pedidos = await readData<Pedido[]>("pedidos.json", []);
   const numero =
     pedidos.reduce((max, p) => Math.max(max, p.numero || 0), 0) + 1;
@@ -186,6 +133,10 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
       produto_id: it.produto_id,
       produto_nome: it.produto_nome,
       modo: it.modo,
+      pack_quantidade:
+        it.modo === "pacote"
+          ? Math.max(1, Math.trunc(Number(it.pack_quantidade) || 1))
+          : undefined,
       quantidade,
       preco_unitario,
       subtotal: Math.round(preco_unitario * quantidade * 100) / 100,
@@ -208,26 +159,12 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   };
 
   pedidos.push(novo);
-  await writeData("pedidos.json", pedidos);
+  await ensureDir();
+  const dest = path.join(DATA_DIR, "pedidos.json");
+  await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+  await fs.rename(dest + ".tmp", dest);
   return novo;
-}
-
-export async function updatePedidoStatus(
-  id: string,
-  status: PedidoStatus
-): Promise<Pedido | undefined> {
-  const pedidos = await readData<Pedido[]>("pedidos.json", []);
-  const idx = pedidos.findIndex((p) => p.id === id);
-  if (idx === -1) return undefined;
-  pedidos[idx] = { ...pedidos[idx], status };
-  await writeData("pedidos.json", pedidos);
-  return pedidos[idx];
-}
-
-export async function deletePedido(id: string): Promise<boolean> {
-  const pedidos = await readData<Pedido[]>("pedidos.json", []);
-  const next = pedidos.filter((p) => p.id !== id);
-  if (next.length === pedidos.length) return false;
-  await writeData("pedidos.json", next);
-  return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
 }

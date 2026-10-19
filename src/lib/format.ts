@@ -21,16 +21,6 @@ export function formatData(iso: string): string {
   }).format(d);
 }
 
-export function modoLabel(
-  modo: "unidade" | "pacote",
-  packQtd?: number
-): string {
-  if (modo === "pacote") {
-    return packQtd ? `Pacote (${packQtd}x)` : "Pacote";
-  }
-  return "Unidade";
-}
-
 // Monta a mensagem de texto do pedido para envio via WhatsApp.
 export function montarMensagemWhatsApp(pedido: Pedido, config: Config): string {
   const linhas: string[] = [];
@@ -41,7 +31,12 @@ export function montarMensagemWhatsApp(pedido: Pedido, config: Config): string {
   linhas.push("");
   linhas.push("*Itens:*");
   for (const it of pedido.itens) {
-    const modo = it.modo === "pacote" ? " (pacote)" : "";
+    const modo =
+      it.modo === "pacote"
+        ? ` (atacado${
+            it.pack_quantidade ? `, ${it.pack_quantidade} itens/pacote` : ""
+          })`
+        : " (unidade — pedido antigo)";
     linhas.push(
       `• ${it.quantidade}x ${it.produto_nome}${modo} — ${formatBRL(
         it.preco_unitario

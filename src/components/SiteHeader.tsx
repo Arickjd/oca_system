@@ -18,6 +18,7 @@ export function SiteHeader() {
           />
         </Link>
 
+        <Link href="/orcamentos" className="text-sm font-medium text-slate-700">Orçamentos</Link>
         <Link
           href="/carrinho"
           aria-label="Ver carrinho"

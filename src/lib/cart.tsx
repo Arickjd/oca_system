@@ -8,27 +8,24 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { CartItem, ModoVenda } from "./types";
+import type { CartItem } from "./types";
 
-const STORAGE_KEY = "oca_carrinho_v1";
+const STORAGE_KEY = "oca_carrinho_atacado_v2";
 
-function chave(produtoId: string, modo: ModoVenda) {
-  return `${produtoId}:${modo}`;
-}
+type CartItemPatch = Partial<
+  Pick<CartItem, "nome" | "preco_unitario" | "pack_quantidade" | "quantidade">
+>;
 
 interface CartContextValue {
   itens: CartItem[];
   totalItens: number;
   totalValor: number;
   adicionar: (item: CartItem) => void;
-  definirQuantidade: (
-    produtoId: string,
-    modo: ModoVenda,
-    quantidade: number
-  ) => void;
-  remover: (produtoId: string, modo: ModoVenda) => void;
+  atualizarItem: (produtoId: string, patch: CartItemPatch) => void;
+  definirQuantidade: (produtoId: string, quantidade: number) => void;
+  remover: (produtoId: string) => void;
   limpar: () => void;
-  quantidadeDe: (produtoId: string, modo: ModoVenda) => number;
+  quantidadeDe: (produtoId: string) => number;
   carregado: boolean;
 }
 
@@ -42,7 +39,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setItens(JSON.parse(raw));
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) setItens(parsed.filter((item): item is CartItem =>
+          item && typeof item.produto_id === "string" && typeof item.nome === "string" &&
+          typeof item.preco_unitario === "number" && Number.isFinite(item.preco_unitario) && item.preco_unitario >= 0 &&
+          Number.isSafeInteger(item.quantidade) && item.quantidade > 0 &&
+          Number.isSafeInteger(item.pack_quantidade) && item.pack_quantidade > 0
+        ));
+      }
     } catch {
       /* ignore */
     }
@@ -61,10 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const adicionar = (item: CartItem) => {
     setItens((atual) => {
-      const k = chave(item.produto_id, item.modo);
-      const idx = atual.findIndex(
-        (i) => chave(i.produto_id, i.modo) === k
-      );
+      const idx = atual.findIndex((i) => i.produto_id === item.produto_id);
       if (idx === -1) return [...atual, item];
       const copia = [...atual];
       copia[idx] = {
@@ -75,33 +77,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const definirQuantidade = (
-    produtoId: string,
-    modo: ModoVenda,
-    quantidade: number
-  ) => {
+  const atualizarItem = (produtoId: string, patch: CartItemPatch) => {
+    setItens((atual) =>
+      atual.map((item) => {
+        if (item.produto_id !== produtoId) return item;
+        const atualizado = { ...item, ...patch };
+        return {
+          ...atualizado,
+          nome: atualizado.nome,
+          preco_unitario: Math.max(0, Number(atualizado.preco_unitario) || 0),
+          pack_quantidade: Math.max(1, Math.trunc(Number(atualizado.pack_quantidade) || 1)),
+          quantidade: Math.max(1, Math.trunc(Number(atualizado.quantidade) || 1)),
+        };
+      })
+    );
+  };
+
+  const definirQuantidade = (produtoId: string, quantidade: number) => {
     setItens((atual) => {
-      const k = chave(produtoId, modo);
       if (quantidade <= 0) {
-        return atual.filter((i) => chave(i.produto_id, i.modo) !== k);
+        return atual.filter((i) => i.produto_id !== produtoId);
       }
       return atual.map((i) =>
-        chave(i.produto_id, i.modo) === k ? { ...i, quantidade } : i
+        i.produto_id === produtoId ? { ...i, quantidade } : i
       );
     });
   };
 
-  const remover = (produtoId: string, modo: ModoVenda) => {
-    setItens((atual) =>
-      atual.filter((i) => chave(i.produto_id, i.modo) !== chave(produtoId, modo))
-    );
+  const remover = (produtoId: string) => {
+    setItens((atual) => atual.filter((i) => i.produto_id !== produtoId));
   };
 
   const limpar = () => setItens([]);
 
-  const quantidadeDe = (produtoId: string, modo: ModoVenda) => {
-    const k = chave(produtoId, modo);
-    return itens.find((i) => chave(i.produto_id, i.modo) === k)?.quantidade ?? 0;
+  const quantidadeDe = (produtoId: string) => {
+    return itens.find((i) => i.produto_id === produtoId)?.quantidade ?? 0;
   };
 
   const totalItens = useMemo(
@@ -109,7 +119,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [itens]
   );
   const totalValor = useMemo(
-    () => itens.reduce((s, i) => s + i.preco_unitario * i.quantidade, 0),
+    () => Math.round(itens.reduce((s, i) => s + Math.round(i.preco_unitario * i.quantidade * 100), 0)) / 100,
     [itens]
   );
 
@@ -118,6 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     totalItens,
     totalValor,
     adicionar,
+    atualizarItem,
     definirQuantidade,
     remover,
     limpar,

@@ -13,6 +13,8 @@ export function CartBar() {
   const esconder =
     pathname?.startsWith("/carrinho") ||
     pathname?.startsWith("/checkout") ||
+    pathname?.startsWith("/gerenciar-produtos") ||
+    pathname?.startsWith("/orcamentos") ||
     totalItens === 0;
 
   if (esconder) return null;

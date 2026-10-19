@@ -26,8 +26,8 @@ async function main() {
 
   for (const line of lines) {
     const parts = line.split(";");
-    if (parts.length < 5) continue;
-    const [codigo, nome, valor, pack, categoriaNome] = parts.map((p) => p.trim());
+    if (parts.length < 4) continue;
+    const [codigo, nome, precoAtacado, categoriaNome] = parts.map((p) => p.trim());
 
     const catNome = categoriaNome || "Sem categoria";
     if (!categoriasMap.has(catNome)) {
@@ -45,8 +45,7 @@ async function main() {
       codigo,
       nome,
       descricao: "",
-      preco: parseMoney(valor),
-      preco_pack: parseMoney(pack),
+      preco_pack: parseMoney(precoAtacado),
       pack_quantidade: 6,
       unidade: "un",
       imagem_url: "",

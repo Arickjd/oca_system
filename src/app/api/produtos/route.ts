@@ -1,34 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProdutos, createProduto } from "@/lib/db";
-import { estaAutenticado } from "@/lib/auth";
+import { getProdutos, criarProduto } from "@/lib/db";
+import { validarProduto } from "@/lib/validarProduto";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
+
+export async function POST(req: NextRequest) {
+  let input;
+  try { input = await validarProduto(await req.json()); }
+  catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Dados inválidos." }, { status: 400 }); }
+  try {
+    const produto = await criarProduto({ ...input, categoria_id: input.categoria_id ?? "" });
+    revalidatePath("/produtos");
+    revalidatePath("/categorias");
+    revalidatePath("/gerenciar-produtos");
+    return NextResponse.json(produto, { status: 201 });
+  } catch { return NextResponse.json({ error: "Não foi possível salvar o produto." }, { status: 500 }); }
+}
 
 export async function GET() {
   const prods = await getProdutos();
   return NextResponse.json(prods);
-}
-
-export async function POST(req: NextRequest) {
-  if (!(await estaAutenticado())) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  const body = await req.json().catch(() => ({}));
-  const nome = String(body?.nome ?? "").trim();
-  if (!nome) {
-    return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 });
-  }
-  const produto = await createProduto({
-    nome,
-    codigo: body?.codigo,
-    descricao: body?.descricao,
-    preco: body?.preco,
-    preco_pack: body?.preco_pack,
-    pack_quantidade: body?.pack_quantidade,
-    unidade: body?.unidade,
-    imagem_url: body?.imagem_url,
-    categoria_id: body?.categoria_id,
-    ativo: body?.ativo,
-  });
-  return NextResponse.json(produto, { status: 201 });
 }

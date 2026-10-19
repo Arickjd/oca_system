@@ -12,7 +12,6 @@ export interface Produto {
   codigo?: string;
   nome: string;
   descricao: string;
-  preco: number; // preço unitário
   preco_pack: number; // preço do fardo/atacado
   pack_quantidade: number; // qtd de unidades no pacote (ex: 6)
   unidade: string; // unidade de venda: un, caixa, fardo...
@@ -29,19 +28,13 @@ export interface ItemPedido {
   produto_id: string;
   produto_nome: string;
   modo: ModoVenda;
+  pack_quantidade?: number;
   quantidade: number;
-  preco_unitario: number; // preço da unidade ou do pacote, conforme o modo
+  preco_unitario: number; // preço registrado no pedido (pedidos antigos podem ser unitários)
   subtotal: number;
 }
 
 export type PedidoStatus = "novo" | "em_separacao" | "concluido" | "cancelado";
-
-export const STATUS_LABEL: Record<PedidoStatus, string> = {
-  novo: "Novo",
-  em_separacao: "Em separação",
-  concluido: "Concluído",
-  cancelado: "Cancelado",
-};
 
 export interface Pedido {
   id: string;
@@ -67,10 +60,8 @@ export interface Config {
 export interface CartItem {
   produto_id: string;
   nome: string;
-  modo: ModoVenda;
   preco_unitario: number;
   pack_quantidade: number;
-  unidade: string;
   imagem_url: string;
   quantidade: number;
 }
