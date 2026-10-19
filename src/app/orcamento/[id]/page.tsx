@@ -5,8 +5,6 @@ import { getConfig } from "@/lib/config";
 import {
   formatBRL,
   formatData,
-  montarMensagemWhatsApp,
-  linkWhatsApp,
 } from "@/lib/format";
 import { ReciboAcoes } from "@/components/ReciboAcoes";
 
@@ -19,8 +17,6 @@ export default async function OrcamentoPage({ params }: Params) {
   const [pedido, config] = await Promise.all([getPedido(id), getConfig()]);
   if (!pedido) notFound();
 
-  const mensagem = montarMensagemWhatsApp(pedido, config);
-  const whatsappUrl = linkWhatsApp(config.whatsapp, mensagem);
 
   return (
     <div className="min-h-dvh bg-slate-100">
@@ -29,9 +25,9 @@ export default async function OrcamentoPage({ params }: Params) {
         <div className="max-w-[210mm] mx-auto px-3 py-3">
           <Link href="/orcamentos" className="inline-block mb-3 text-sm underline">Todos os orçamentos</Link>
           <ReciboAcoes
-            whatsappUrl={whatsappUrl}
+            pedidoId={pedido.id}
+            numero={pedido.numero}
             shareTitle={`${config.distribuidora_nome} — Orçamento #${pedido.numero}`}
-            shareText={mensagem}
           />
         </div>
       </div>
@@ -46,7 +42,7 @@ export default async function OrcamentoPage({ params }: Params) {
               <img
                 src="/logo.png"
                 alt={config.distribuidora_nome}
-                className="h-14 w-auto object-contain"
+                className="h-16 w-auto max-w-[45vw] object-contain"
               />
             </div>
             <div className="text-right">

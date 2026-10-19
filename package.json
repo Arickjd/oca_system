@@ -2,8 +2,12 @@
   "name": "oca-system",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": ">=22 <25" },
-  "overrides": { "postcss": "8.5.31" },
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "overrides": {
+    "postcss": "8.5.31"
+  },
   "description": "OCA Distribuidora - Sistema de orçamentos e pedidos (mobile-first)",
   "scripts": {
     "dev": "next dev",
@@ -15,6 +19,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
     "next": "^15.5.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
