@@ -27,6 +27,13 @@ Sem a variável, o modo local continua usando data/*.json.
 
 ## Verificação após publicar
 
+Se ocorrer o erro PostgreSQL 42P01 (tabela inexistente), execute a migração
+usando a conexão do mesmo banco/branch configurado no ambiente Vercel.
+Não basta criar o banco no Neon: npm run db:migrate cria as tabelas e importa os dados.
+O layout da loja é dinâmico, inclusive carrinho e checkout, para não acessar
+o banco durante o build. Isso permite compilar sem conexão, mas o banco precisa
+estar migrado para abrir as páginas depois da publicação.
+
 - Abra o catálogo e o histórico; confira as contagens importadas.
 - Cadastre um produto, edite seu preço e gere um orçamento.
 - Faça outro deploy e confirme que os registros continuam disponíveis.

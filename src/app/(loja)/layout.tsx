@@ -2,6 +2,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { CartBar } from "@/components/CartBar";
 import { getConfig } from "@/lib/config";
 
+// O rodapé lê o banco: carrinho e checkout também precisam renderizar por requisição.
+// Não consultar tabelas durante o build, antes da migração inicial.
+export const dynamic = "force-dynamic";
+
 export default async function LojaLayout({
   children,
 }: {
