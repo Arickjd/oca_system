@@ -38,6 +38,15 @@ async function main() {
     await Promise.all((await db.getPedidos()).map(p => db.excluirPedido(p.id)));
     assert.equal((await db.getPedidos()).length, 0);
     assert.equal((await db.createPedido(input)).numero, 22);
+    await db.atualizarProduto(produto.id, { nome: "Com custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 10 });
+    const comCusto = await db.createPedido(input);
+    assert.equal(comCusto.lucro_bruto, 15);
+    assert.equal(comCusto.itens[0].custo_unitario, 10);
+    await db.atualizarProduto(produto.id, { nome: "Custo alterado", preco_pack: 15, pack_quantidade: 12, custo_pack: null });
+    assert.equal((await db.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal((await db.createPedido(input)).lucro_bruto, null);
+    const misto = { itens: [...input.itens, { ...input.itens[0], produto_id: "sem-cadastro" }] };
+    assert.equal((await db.createPedido(misto)).lucro_bruto, null);
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");

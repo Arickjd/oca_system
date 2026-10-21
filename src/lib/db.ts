@@ -67,7 +67,7 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id" | "custo_pack">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
@@ -85,7 +85,7 @@ export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" |
 
 /* ------------------------------- Pedidos ------------------------------ */
 
-export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id">) {
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack">) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
     ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
   });
@@ -157,7 +157,13 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   const numero =
     pedidos.reduce((max, p) => Math.max(max, p.numero || 0), 0) + 1;
 
+  // Custos lidos no servidor e congelados; alterações futuras não mudam o histórico.
+  const produtos = new Map((await getProdutos()).map(p => [p.id, p]));
   const itens: ItemPedido[] = (input.itens || []).map((it) => {
+    const produto = produtos.get(it.produto_id);
+    const custo = produto?.custo_pack;
+    const custo_unitario = typeof custo === "number" && Number.isFinite(custo) && custo > 0
+      ? (it.modo === "pacote" ? custo : custo / (produto?.pack_quantidade || 1)) : null;
     const quantidade = Math.max(1, Number(it.quantidade) || 1);
     const preco_unitario = Number(it.preco_unitario) || 0;
     return {
@@ -171,6 +177,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
           : undefined,
       quantidade,
       preco_unitario,
+      custo_unitario,
       subtotal: Math.round(preco_unitario * quantidade * 100) / 100,
     };
   });
@@ -186,6 +193,9 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     observacao: (input.observacao ?? "").trim(),
     itens,
     valor_total,
+    lucro_bruto: itens.length > 0 && itens.every(it => it.custo_unitario != null)
+      ? (Math.round(valor_total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100
+      : null,
     status: "novo",
     created_at: new Date().toISOString(),
   };

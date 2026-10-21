@@ -13,6 +13,7 @@ export interface Produto {
   nome: string;
   descricao: string;
   preco_pack: number; // preço do fardo/atacado
+  custo_pack?: number | null; // custo por pacote; zero/ausente = desconhecido
   pack_quantidade: number; // qtd de unidades no pacote (ex: 6)
   unidade: string; // unidade de venda: un, caixa, fardo...
   imagem_url: string;
@@ -32,6 +33,7 @@ export interface ItemPedido {
   quantidade: number;
   preco_unitario: number; // preço registrado no pedido (pedidos antigos podem ser unitários)
   subtotal: number;
+  custo_unitario?: number | null; // snapshot interno na finalização
 }
 
 export type PedidoStatus = "novo" | "em_separacao" | "concluido" | "cancelado";
@@ -44,6 +46,7 @@ export interface Pedido {
   observacao: string;
   itens: ItemPedido[];
   valor_total: number;
+  lucro_bruto?: number | null; // desconhecido quando falta algum custo
   status: PedidoStatus;
   excluido_em?: string;
   created_at: string;

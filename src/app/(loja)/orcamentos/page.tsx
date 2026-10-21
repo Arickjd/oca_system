@@ -14,7 +14,13 @@ export default async function OrcamentosPage() {
     {!pedidos.length && <p className="rounded-xl bg-white p-6">Nenhum orçamento realizado ainda.</p>}
     {pedidos.map((pedido) => <article key={pedido.id} className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
       <Link href={`/orcamento/${pedido.id}`} className="flex flex-col gap-2 hover:underline">
-      <div className="flex justify-between gap-3"><strong>Orçamento #{pedido.numero}</strong><strong>{formatBRL(pedido.valor_total)}</strong></div>
+      <div className="flex justify-between gap-3"><strong>Orçamento #{pedido.numero}</strong><div className="text-right">
+        <strong>{formatBRL(pedido.valor_total)}</strong>
+        <p className={`mt-1 text-sm ${pedido.lucro_bruto == null ? "text-slate-500" : pedido.lucro_bruto < 0 ? "text-red-700" : "text-emerald-700"}`}>
+          Lucro bruto: {pedido.lucro_bruto == null ? "---" : formatBRL(pedido.lucro_bruto)}
+        </p>
+        {pedido.lucro_bruto == null && <p className="text-xs text-slate-500">Custo não registrado em todos os itens</p>}
+      </div></div>
       <span>{pedido.cliente_nome || "Cliente não informado"}</span>
       <span className="text-sm text-slate-500">{formatData(pedido.created_at)} · {pedido.itens.length} produto(s)</span>
       <span className="text-sm font-medium">Ver orçamento →</span>

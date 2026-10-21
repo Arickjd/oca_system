@@ -92,6 +92,18 @@ async function main() {
     const seguinte = await api.createPedido({ itens: [] });
     assert.equal(seguinte.numero, 63);
     assert.equal((await api.getPedidos()).length, 1);
+    const venda = { itens: [{ produto_id: criado.id, produto_nome: "Teste de custo", modo: "pacote", quantidade: 3, preco_unitario: 15, pack_quantidade: 12 }] };
+    assert.equal((await api.createPedido(venda)).lucro_bruto, null);
+    await api.atualizarProduto(criado.id, { nome: "Com custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 10 });
+    const comCusto = await api.createPedido(venda);
+    assert.equal(comCusto.lucro_bruto, 15);
+    assert.equal(comCusto.itens[0].custo_unitario, 10);
+    await api.atualizarProduto(criado.id, { nome: "Custo alterado", preco_pack: 15, pack_quantidade: 12, custo_pack: 20 });
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal((await api.createPedido(venda)).lucro_bruto, -15);
+    await api.atualizarProduto(criado.id, { nome: "Sem custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 0 });
+    assert.equal((await api.createPedido(venda)).lucro_bruto, null);
+    assert.equal((await api.getPedido("antigo")), undefined);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

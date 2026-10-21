@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Produto, Categoria } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
+import { RentabilidadeProduto } from "./RentabilidadeProduto";
 
-const vazio = { id: "", nome: "", preco_pack: "", pack_quantidade: "6", categoria_id: "" };
+const vazio = { id: "", nome: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "" };
 const campo = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5";
 
 export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]; categorias: Categoria[] }) {
@@ -21,7 +22,7 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
   const lista = produtos.filter(p => normalizar(p.nome).includes(normalizar(busca.trim())) &&
     (categoria === null || (categoria === "" ? !categorias.some(c => c.id === p.categoria_id) : p.categoria_id === categoria)));
   function abrir(p?: Produto) {
-    setForm(p ? { id: p.id, nome: p.nome, preco_pack: String(p.preco_pack), pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : vazio);
+    setForm(p ? { id: p.id, nome: p.nome, preco_pack: String(p.preco_pack), custo_pack: p.custo_pack ? String(p.custo_pack) : "", pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : vazio);
     setErro(""); setSucesso(""); setAberto(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -30,7 +31,7 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
     try {
       const res = await fetch(form.id ? "/api/produtos/" + encodeURIComponent(form.id) : "/api/produtos", {
         method: form.id ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome, preco_pack: Number(form.preco_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id }),
+        body: JSON.stringify({ nome: form.nome, preco_pack: Number(form.preco_pack), custo_pack: form.custo_pack === "" ? null : Number(form.custo_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Não foi possível salvar.");
@@ -49,6 +50,9 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
       <fieldset disabled={salvando} className="flex flex-col gap-3 text-sm">
         <label>Nome<input autoFocus required className={campo} value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} /></label>
         <label>Preço de atacado por pacote (R$)<input required type="number" min="0" step="0.01" inputMode="decimal" className={campo} value={form.preco_pack} onChange={e => setForm({ ...form, preco_pack: e.target.value })} /></label>
+        <label className="text-blue-800">Compra por pacote (R$)<input type="number" min="0" step="0.01" inputMode="decimal" placeholder="---" className={campo} value={form.custo_pack} onChange={e => setForm({ ...form, custo_pack: e.target.value })} /></label>
+        <RentabilidadeProduto venda={Number(form.preco_pack)} custo={Number(form.custo_pack)} />
+        <p className="text-xs text-slate-500">Margem calculada sobre a venda, sem outras despesas. Compra vazia ou zero será exibida como ---.</p>
         <label>Itens por pacote<input required type="number" min="1" step="1" className={campo} value={form.pack_quantidade} onChange={e => setForm({ ...form, pack_quantidade: e.target.value })} /></label>
         <label>Categoria<select className={campo} value={form.categoria_id} onChange={e => setForm({ ...form, categoria_id: e.target.value })}>
           <option value="">Sem categoria</option>{categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -75,7 +79,8 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
     {lista.map(p => <article key={p.id} className="flex justify-between items-center gap-3 rounded-xl border bg-white p-4">
       <div className="min-w-0"><h2 className="font-semibold break-words">{p.nome}</h2>
         <p className="text-sm text-slate-500">{categorias.find(c => c.id === p.categoria_id)?.nome || "Sem categoria"} · {p.pack_quantidade} itens/pacote</p>
-        <p>{formatBRL(p.preco_pack)}</p>
+        <p>Venda: {formatBRL(p.preco_pack)}</p>
+        <RentabilidadeProduto venda={p.preco_pack} custo={p.custo_pack} />
       </div>
       <button disabled={salvando} aria-label={"Editar " + p.nome} onClick={() => abrir(p)} className="rounded-lg border px-3 py-2">Editar</button>
     </article>)}

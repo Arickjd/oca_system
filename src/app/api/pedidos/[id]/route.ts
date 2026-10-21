@@ -24,5 +24,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       { status: 404 }
     );
   }
-  return NextResponse.json(pedido);
+  // A consulta individual acompanha o documento do cliente, sem dados internos.
+  const { lucro_bruto: _lucro, ...publico } = pedido;
+  return NextResponse.json({ ...publico, itens: pedido.itens.map(({ custo_unitario: _custo, ...item }) => item) });
 }
