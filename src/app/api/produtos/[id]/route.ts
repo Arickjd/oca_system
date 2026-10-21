@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProduto, atualizarProduto } from "@/lib/db";
+import { getProduto, atualizarProduto, excluirProduto } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { validarProduto } from "@/lib/validarProduto";
 
 type Params = { params: Promise<{ id: string }> };
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const { id } = await params;
+  try {
+    if (!await excluirProduto(id)) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    revalidatePath("/", "layout");
+    return new NextResponse(null, { status: 204 });
+  } catch {
+    return NextResponse.json({ error: "Não foi possível excluir o produto. Tente novamente." }, { status: 500 });
+  }
+}
 
 export async function PUT(req: NextRequest, { params }: Params) {
   const { id } = await params;

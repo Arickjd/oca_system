@@ -58,21 +58,24 @@ export async function getCategorias(): Promise<Categoria[]> {
 /* ------------------------------ Produtos ------------------------------ */
 
 export async function getProdutos(): Promise<Produto[]> {
-  return readData<Produto[]>("produtos.json", []);
+  return (await readData<Produto[]>("produtos.json", [])).filter(p => !p.excluido_em);
 }
 
 export async function getProduto(id: string): Promise<Produto | undefined> {
-  if (postgres.usarPostgres()) return postgres.buscar<Produto>("produtos", id);
+  if (postgres.usarPostgres()) {
+    const produto = await postgres.buscar<Produto>("produtos", id);
+    return produto?.excluido_em ? undefined : produto;
+  }
   const prods = await getProdutos();
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id" | "custo_pack">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
-    const produto = produtos.find((p) => p.id === id);
+    const produto = produtos.find((p) => p.id === id && !p.excluido_em);
     if (!produto) return undefined;
     Object.assign(produto, patch);
     await fs.writeFile(`${dest}.tmp`, JSON.stringify(produtos, null, 2), "utf8");
@@ -83,9 +86,26 @@ export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" |
   return run;
 }
 
+export async function excluirProduto(id: string): Promise<boolean> {
+  if (postgres.usarPostgres()) return postgres.excluirProduto(id);
+  const run = writeChain.then(async () => {
+    const produtos = await readData<Produto[]>("produtos.json", []);
+    const produto = produtos.find(p => p.id === id && !p.excluido_em);
+    if (!produto) return false;
+    produto.excluido_em = new Date().toISOString();
+    produto.ativo = false;
+    const dest = path.join(DATA_DIR, "produtos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 /* ------------------------------- Pedidos ------------------------------ */
 
-export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id">) {
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack">) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
     ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
   });
@@ -105,13 +125,33 @@ export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | 
 export async function getPedidos(): Promise<Pedido[]> {
   const pedidos = await readData<Pedido[]>("pedidos.json", []);
   // mais recentes primeiro
-  return pedidos.sort((a, b) => b.numero - a.numero);
+  return pedidos.filter(p => !p.excluido_em).sort((a, b) => b.numero - a.numero);
 }
 
 export async function getPedido(id: string): Promise<Pedido | undefined> {
-  if (postgres.usarPostgres()) return postgres.buscar<Pedido>("pedidos", id);
+  if (postgres.usarPostgres()) {
+    const pedido = await postgres.buscar<Pedido>("pedidos", id);
+    return pedido?.excluido_em ? undefined : pedido;
+  }
   const pedidos = await getPedidos();
   return pedidos.find((p) => p.id === id);
+}
+
+// Exclusão lógica preserva a numeração e impede que uma reimportação restaure o orçamento.
+export async function excluirPedido(id: string): Promise<boolean> {
+  if (postgres.usarPostgres()) return postgres.excluirPedido(id);
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
+    if (!pedido) return false;
+    pedido.excluido_em = new Date().toISOString();
+    const dest = path.join(DATA_DIR, "pedidos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
 }
 
 export interface NovoItem {
@@ -137,7 +177,13 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   const numero =
     pedidos.reduce((max, p) => Math.max(max, p.numero || 0), 0) + 1;
 
+  // Custos lidos no servidor e congelados; alterações futuras não mudam o histórico.
+  const produtos = new Map((await getProdutos()).map(p => [p.id, p]));
   const itens: ItemPedido[] = (input.itens || []).map((it) => {
+    const produto = produtos.get(it.produto_id);
+    const custo = produto?.custo_pack;
+    const custo_unitario = typeof custo === "number" && Number.isFinite(custo) && custo > 0
+      ? (it.modo === "pacote" ? custo : custo / (produto?.pack_quantidade || 1)) : null;
     const quantidade = Math.max(1, Number(it.quantidade) || 1);
     const preco_unitario = Number(it.preco_unitario) || 0;
     return {
@@ -151,6 +197,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
           : undefined,
       quantidade,
       preco_unitario,
+      custo_unitario,
       subtotal: Math.round(preco_unitario * quantidade * 100) / 100,
     };
   });
@@ -166,6 +213,9 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     observacao: (input.observacao ?? "").trim(),
     itens,
     valor_total,
+    lucro_bruto: itens.length > 0 && itens.every(it => it.custo_unitario != null)
+      ? (Math.round(valor_total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100
+      : null,
     status: "novo",
     created_at: new Date().toISOString(),
   };

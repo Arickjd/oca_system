@@ -3,6 +3,7 @@
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import type { Produto } from "@/lib/types";
+import { RentabilidadeProduto } from "./RentabilidadeProduto";
 
 function Stepper({
   qtd,
@@ -128,6 +129,7 @@ export function ProdutoCard({
       </div>
 
       <div>
+        <RentabilidadeProduto venda={produto.preco_pack} custo={produto.custo_pack} />
         <WholesaleControl
           label={`Atacado · pacote com ${produto.pack_quantidade}`}
           preco={produto.preco_pack}

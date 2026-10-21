@@ -80,12 +80,46 @@ async function main() {
         await tx.query(query, params);
     }));
     assert.equal(await store.buscar("pedidos", "conflito"), undefined);
+    assert.equal(await api.excluirPedido(pedido.id), true);
+    assert.equal(await api.excluirPedido(pedido.id), false);
+    assert.equal(await api.excluirPedido("inexistente"), false);
+    assert.equal(await api.getPedido(pedido.id), undefined);
+    assert.equal((await api.getPedidos()).length, 22);
+    await Promise.all((await api.getPedidos()).map(p => api.excluirPedido(p.id)));
+    await importar(); // Importação não deve ressuscitar registros excluídos.
+    assert.equal((await api.getPedidos()).length, 0);
+    store = await load();
+    const seguinte = await api.createPedido({ itens: [] });
+    assert.equal(seguinte.numero, 63);
+    assert.equal((await api.getPedidos()).length, 1);
+    const venda = { itens: [{ produto_id: criado.id, produto_nome: "Teste de custo", modo: "pacote", quantidade: 3, preco_unitario: 15, pack_quantidade: 12 }] };
+    assert.equal((await api.createPedido(venda)).lucro_bruto, null);
+    await api.atualizarProduto(criado.id, { nome: "Com custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 10 });
+    const comCusto = await api.createPedido(venda);
+    assert.equal(comCusto.lucro_bruto, 15);
+    assert.equal(comCusto.itens[0].custo_unitario, 10);
+    await api.atualizarProduto(criado.id, { nome: "Custo alterado", preco_pack: 15, pack_quantidade: 12, custo_pack: 20 });
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal((await api.createPedido(venda)).lucro_bruto, -15);
+    await api.atualizarProduto(criado.id, { nome: "Sem custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 0 });
+    assert.equal((await api.createPedido(venda)).lucro_bruto, null);
+    assert.equal((await api.getPedido("antigo")), undefined);
+    assert.equal(await api.excluirProduto(criado.id), true);
+    assert.equal(await api.excluirProduto(criado.id), false);
+    assert.equal(await api.excluirProduto("inexistente"), false);
+    assert.equal(await api.getProduto(criado.id), undefined);
+    assert.ok(!(await api.getProdutos()).some(p => p.id === criado.id));
+    assert.equal(await api.atualizarProduto(criado.id, { nome: "Restaurado", preco_pack: 1, pack_quantidade: 1 }), undefined);
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    await api.excluirProduto(produto.id);
+    await importar();
+    assert.equal(await api.getProduto(produto.id), undefined);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";
       assert.throws(() => store.usarPostgres(), /DATABASE_URL/);
     } finally { if (vercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = vercel; }
-    console.log("OK: importação repetível, edição, cadastro, 20 orçamentos, nova instância e configuração obrigatória na Vercel.");
+    console.log("OK: importação, edição, concorrência, exclusão, sequência após excluir todos, nova instância e configuração Vercel.");
   } finally {
     await db.close();
     if (previous === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = previous;

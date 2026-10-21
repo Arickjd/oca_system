@@ -31,9 +31,26 @@ export async function inserir<T extends { id: string }>(colecao: string, dados: 
 }
 
 export async function atualizar<T>(colecao: string, id: string, patch: object): Promise<T | undefined> {
-  const rows = await sql().query("UPDATE oca_registros SET dados = dados || $3::jsonb WHERE colecao = $1 AND id = $2 RETURNING dados",
+  const rows = await sql().query("UPDATE oca_registros SET dados = dados || $3::jsonb WHERE colecao = $1 AND id = $2 AND dados->>'excluido_em' IS NULL RETURNING dados",
     [colecao, id, JSON.stringify(patch)]);
   return rows[0]?.dados as T | undefined;
+}
+
+export async function excluirProduto(id: string): Promise<boolean> {
+  const produto = await atualizar<ProdutoExcluido>("produtos", id, { ativo: false, excluido_em: new Date().toISOString() });
+  return !!produto;
+}
+
+type ProdutoExcluido = { id: string; excluido_em: string };
+
+// Exclusão lógica sem alterar o contador de orçamentos.
+export async function excluirPedido(id: string): Promise<boolean> {
+  const rows = await sql().query(`
+    UPDATE oca_registros SET dados = dados || jsonb_build_object('excluido_em', $2::text)
+    WHERE colecao = 'pedidos' AND id = $1 AND dados->>'excluido_em' IS NULL
+    RETURNING id
+  `, [id, new Date().toISOString()]);
+  return rows.length > 0;
 }
 
 // O contador e o orçamento são gravados atomicamente, mesmo entre várias funções Vercel.
