@@ -45,6 +45,7 @@ export interface Pedido {
   itens: ItemPedido[];
   valor_total: number;
   status: PedidoStatus;
+  excluido_em?: string;
   created_at: string;
 }
 

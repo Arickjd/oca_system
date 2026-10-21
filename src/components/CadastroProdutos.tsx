@@ -11,12 +11,15 @@ const campo = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5";
 export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]; categorias: Categoria[] }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
+  const [categoria, setCategoria] = useState<string | null>(null);
   const [form, setForm] = useState(vazio);
   const [aberto, setAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
-  const lista = produtos.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()));
+  const normalizar = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const lista = produtos.filter(p => normalizar(p.nome).includes(normalizar(busca.trim())) &&
+    (categoria === null || (categoria === "" ? !categorias.some(c => c.id === p.categoria_id) : p.categoria_id === categoria)));
   function abrir(p?: Produto) {
     setForm(p ? { id: p.id, nome: p.nome, preco_pack: String(p.preco_pack), pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : vazio);
     setErro(""); setSucesso(""); setAberto(true);
@@ -56,7 +59,18 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
       <button disabled={salvando} type="button" onClick={() => setAberto(false)}>Cancelar</button>
     </form>}
     <label>Buscar produto<input type="search" className={campo} value={busca} onChange={e => setBusca(e.target.value)} /></label>
-    <p className="text-sm text-slate-500">{lista.length} produto(s)</p>
+    <fieldset>
+      <legend className="mb-2 text-sm font-semibold">Filtrar por categoria</legend>
+      <div className="flex flex-wrap gap-2">
+        {[{ id: null, nome: "Todas" }, ...categorias, { id: "", nome: "Sem categoria" }].map(c =>
+          <button key={c.id ?? "todas"} type="button" aria-pressed={categoria === c.id} onClick={() => setCategoria(c.id)}
+            className={`rounded-full border px-3 py-2 text-sm ${categoria === c.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-900"}`}>
+            {c.nome}
+          </button>)}
+      </div>
+    </fieldset>
+    {(busca || categoria !== null) && <button type="button" onClick={() => { setBusca(""); setCategoria(null); }} className="self-start text-sm underline">Limpar filtros</button>}
+    <p role="status" className="text-sm text-slate-500">{lista.length} de {produtos.length} produto(s)</p>
     {!lista.length && <p>Nenhum produto encontrado.</p>}
     {lista.map(p => <article key={p.id} className="flex justify-between items-center gap-3 rounded-xl border bg-white p-4">
       <div className="min-w-0"><h2 className="font-semibold break-words">{p.nome}</h2>

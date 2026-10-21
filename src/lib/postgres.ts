@@ -36,6 +36,16 @@ export async function atualizar<T>(colecao: string, id: string, patch: object): 
   return rows[0]?.dados as T | undefined;
 }
 
+// Exclusão lógica sem alterar o contador de orçamentos.
+export async function excluirPedido(id: string): Promise<boolean> {
+  const rows = await sql().query(`
+    UPDATE oca_registros SET dados = dados || jsonb_build_object('excluido_em', $2::text)
+    WHERE colecao = 'pedidos' AND id = $1 AND dados->>'excluido_em' IS NULL
+    RETURNING id
+  `, [id, new Date().toISOString()]);
+  return rows.length > 0;
+}
+
 // O contador e o orçamento são gravados atomicamente, mesmo entre várias funções Vercel.
 export async function inserirPedido(dados: Pedido): Promise<Pedido> {
   const rows = await sql().query(`

@@ -30,10 +30,18 @@ async function main() {
     assert.ok(pedidos.every(p => p.valor_total === 45));
     await db.atualizarProduto(produto.id, { nome: "Outro nome", preco_pack: 25, pack_quantidade: 6 });
     assert.equal((await db.getPedidos())[0].itens[0].produto_nome, "Snapshot");
+    assert.equal(await db.excluirPedido(pedidos[0].id), true);
+    assert.equal(await db.excluirPedido(pedidos[0].id), false);
+    assert.equal(await db.excluirPedido("inexistente"), false);
+    assert.equal(await db.getPedido(pedidos[0].id), undefined);
+    assert.equal((await db.createPedido(input)).numero, 21);
+    await Promise.all((await db.getPedidos()).map(p => db.excluirPedido(p.id)));
+    assert.equal((await db.getPedidos()).length, 0);
+    assert.equal((await db.createPedido(input)).numero, 22);
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");
-    console.log("OK: cadastro, edição, 20 pedidos simultâneos, histórico e proteção contra JSON corrompido.");
+    console.log("OK: cadastro, edição, concorrência, exclusão sem reutilizar números e proteção contra JSON corrompido.");
   } finally {
     process.chdir(root);
     await fs.rm(temp, { recursive: true, force: true });

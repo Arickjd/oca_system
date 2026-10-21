@@ -105,13 +105,33 @@ export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | 
 export async function getPedidos(): Promise<Pedido[]> {
   const pedidos = await readData<Pedido[]>("pedidos.json", []);
   // mais recentes primeiro
-  return pedidos.sort((a, b) => b.numero - a.numero);
+  return pedidos.filter(p => !p.excluido_em).sort((a, b) => b.numero - a.numero);
 }
 
 export async function getPedido(id: string): Promise<Pedido | undefined> {
-  if (postgres.usarPostgres()) return postgres.buscar<Pedido>("pedidos", id);
+  if (postgres.usarPostgres()) {
+    const pedido = await postgres.buscar<Pedido>("pedidos", id);
+    return pedido?.excluido_em ? undefined : pedido;
+  }
   const pedidos = await getPedidos();
   return pedidos.find((p) => p.id === id);
+}
+
+// Exclusão lógica preserva a numeração e impede que uma reimportação restaure o orçamento.
+export async function excluirPedido(id: string): Promise<boolean> {
+  if (postgres.usarPostgres()) return postgres.excluirPedido(id);
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
+    if (!pedido) return false;
+    pedido.excluido_em = new Date().toISOString();
+    const dest = path.join(DATA_DIR, "pedidos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
 }
 
 export interface NovoItem {

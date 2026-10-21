@@ -80,12 +80,24 @@ async function main() {
         await tx.query(query, params);
     }));
     assert.equal(await store.buscar("pedidos", "conflito"), undefined);
+    assert.equal(await api.excluirPedido(pedido.id), true);
+    assert.equal(await api.excluirPedido(pedido.id), false);
+    assert.equal(await api.excluirPedido("inexistente"), false);
+    assert.equal(await api.getPedido(pedido.id), undefined);
+    assert.equal((await api.getPedidos()).length, 22);
+    await Promise.all((await api.getPedidos()).map(p => api.excluirPedido(p.id)));
+    await importar(); // Importação não deve ressuscitar registros excluídos.
+    assert.equal((await api.getPedidos()).length, 0);
+    store = await load();
+    const seguinte = await api.createPedido({ itens: [] });
+    assert.equal(seguinte.numero, 63);
+    assert.equal((await api.getPedidos()).length, 1);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";
       assert.throws(() => store.usarPostgres(), /DATABASE_URL/);
     } finally { if (vercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = vercel; }
-    console.log("OK: importação repetível, edição, cadastro, 20 orçamentos, nova instância e configuração obrigatória na Vercel.");
+    console.log("OK: importação, edição, concorrência, exclusão, sequência após excluir todos, nova instância e configuração Vercel.");
   } finally {
     await db.close();
     if (previous === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = previous;
