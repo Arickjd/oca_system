@@ -9,7 +9,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
       <div className="max-w-3xl mx-auto px-3 h-14 flex items-center justify-between gap-2">
-        <Link href="/categorias" className="flex items-center gap-2">
+        <Link href="/" aria-label="Ir para a página inicial" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"

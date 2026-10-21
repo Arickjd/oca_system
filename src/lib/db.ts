@@ -58,11 +58,14 @@ export async function getCategorias(): Promise<Categoria[]> {
 /* ------------------------------ Produtos ------------------------------ */
 
 export async function getProdutos(): Promise<Produto[]> {
-  return readData<Produto[]>("produtos.json", []);
+  return (await readData<Produto[]>("produtos.json", [])).filter(p => !p.excluido_em);
 }
 
 export async function getProduto(id: string): Promise<Produto | undefined> {
-  if (postgres.usarPostgres()) return postgres.buscar<Produto>("produtos", id);
+  if (postgres.usarPostgres()) {
+    const produto = await postgres.buscar<Produto>("produtos", id);
+    return produto?.excluido_em ? undefined : produto;
+  }
   const prods = await getProdutos();
   return prods.find((p) => p.id === id);
 }
@@ -72,12 +75,29 @@ export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" |
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
-    const produto = produtos.find((p) => p.id === id);
+    const produto = produtos.find((p) => p.id === id && !p.excluido_em);
     if (!produto) return undefined;
     Object.assign(produto, patch);
     await fs.writeFile(`${dest}.tmp`, JSON.stringify(produtos, null, 2), "utf8");
     await fs.rename(`${dest}.tmp`, dest);
     return produto;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export async function excluirProduto(id: string): Promise<boolean> {
+  if (postgres.usarPostgres()) return postgres.excluirProduto(id);
+  const run = writeChain.then(async () => {
+    const produtos = await readData<Produto[]>("produtos.json", []);
+    const produto = produtos.find(p => p.id === id && !p.excluido_em);
+    if (!produto) return false;
+    produto.excluido_em = new Date().toISOString();
+    produto.ativo = false;
+    const dest = path.join(DATA_DIR, "produtos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return true;
   });
   writeChain = run.catch(() => undefined);
   return run;

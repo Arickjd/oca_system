@@ -104,6 +104,16 @@ async function main() {
     await api.atualizarProduto(criado.id, { nome: "Sem custo", preco_pack: 15, pack_quantidade: 12, custo_pack: 0 });
     assert.equal((await api.createPedido(venda)).lucro_bruto, null);
     assert.equal((await api.getPedido("antigo")), undefined);
+    assert.equal(await api.excluirProduto(criado.id), true);
+    assert.equal(await api.excluirProduto(criado.id), false);
+    assert.equal(await api.excluirProduto("inexistente"), false);
+    assert.equal(await api.getProduto(criado.id), undefined);
+    assert.ok(!(await api.getProdutos()).some(p => p.id === criado.id));
+    assert.equal(await api.atualizarProduto(criado.id, { nome: "Restaurado", preco_pack: 1, pack_quantidade: 1 }), undefined);
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    await api.excluirProduto(produto.id);
+    await importar();
+    assert.equal(await api.getProduto(produto.id), undefined);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

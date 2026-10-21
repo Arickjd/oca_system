@@ -14,6 +14,7 @@ export interface Produto {
   descricao: string;
   preco_pack: number; // preço do fardo/atacado
   custo_pack?: number | null; // custo por pacote; zero/ausente = desconhecido
+  excluido_em?: string;
   pack_quantidade: number; // qtd de unidades no pacote (ex: 6)
   unidade: string; // unidade de venda: un, caixa, fardo...
   imagem_url: string;
