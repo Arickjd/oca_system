@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getConfig } from "@/lib/config";
+import { InstalarApp } from "@/components/InstalarApp";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function Landing() {
           Cadastrar novos produtos e editar o catálogo.
         </p>
       </Link>
+      <InstalarApp />
     </main>
   );
 }

@@ -63,3 +63,17 @@ plataforma ou adicione autenticação antes de divulgar o endereço.
 
 Os testes locais não substituem a verificação da conexão Neon/Vercel após configurar
 DATABASE_URL e executar a migração.
+
+## Instalação no celular
+
+Após publicar na Vercel (HTTPS), abra a página inicial e toque em **Instalar Sistema OCA**.
+No Android/Chrome, também é possível usar o menu ⋮ → Instalar aplicativo / Adicionar à tela inicial.
+No iPhone/Safari, use Compartilhar → Adicionar à Tela de Início.
+
+O app abre em modo standalone, com o nome Sistema OCA e ícones derivados de ICON_APP.png.
+Inclua public/icons/ no commit. O manifesto é servido em /manifest.webmanifest.
+Não há migração de banco, novas variáveis de ambiente nem instalação pela loja de aplicativos.
+O sistema continua dependendo de internet; não há cache offline de produtos ou orçamentos.
+Para testar a instalação no celular, use o endereço HTTPS do Preview/deploy; HTTP na rede local não equivale a HTTPS.
+
+Referência: https://nextjs.org/docs/app/guides/progressive-web-apps
