@@ -3,7 +3,13 @@ import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 
 export const metadata: Metadata = {
-  title: "OCA Distribuidora",
+  title: "Sistema OCA",
+  applicationName: "Sistema OCA",
+  appleWebApp: { capable: true, title: "Sistema OCA", statusBarStyle: "default" },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   description: "Monte pedidos no atacado e gere orçamentos — OCA Distribuidora",
 };
 
