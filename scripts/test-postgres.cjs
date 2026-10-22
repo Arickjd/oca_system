@@ -65,9 +65,12 @@ async function main() {
     }).outputText, filename);
     const api = facade.exports;
     assert.equal((await api.getProdutos()).length, 2);
-    const criado = await api.criarProduto({ nome: "Via aplicação", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
+    const criado = await api.criarProduto({ nome: "Via aplicação", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
     await api.atualizarProduto(criado.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });
     assert.equal((await api.getProduto(criado.id)).preco_pack, 15);
+    assert.equal((await api.getProduto(criado.id)).descricao, "Descrição inicial");
+    await api.atualizarProduto(criado.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12, descricao: "Nova descrição" });
+    assert.equal((await api.getProduto(criado.id)).descricao, "Nova descrição");
     const pedido = await api.createPedido({ itens: [{
       produto_id: criado.id, produto_nome: "Atualizado", modo: "pacote", quantidade: 3, preco_unitario: 15, pack_quantidade: 12,
     }] });
@@ -114,6 +117,16 @@ async function main() {
     await api.excluirProduto(produto.id);
     await importar();
     assert.equal(await api.getProduto(produto.id), undefined);
+    assert.equal(comCusto.status_pagamento, "pendente");
+    const pagamentos = await Promise.all([api.finalizarPagamento(comCusto.id, "pix"), api.finalizarPagamento(comCusto.id, "cartao")]);
+    assert.equal(pagamentos.filter(Boolean).length, 1);
+    assert.equal((await api.getPedido(comCusto.id)).status_pagamento, "finalizado");
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal(await api.finalizarPagamento("inexistente", "dinheiro"), undefined);
+    await assert.rejects(() => api.finalizarPagamento(comCusto.id, "boleto"));
+    assert.equal(await api.finalizarPagamento(pedido.id, "dinheiro"), undefined); // Excluído.
+    const dinheiro = await api.createPedido({ itens: [] });
+    assert.equal((await api.finalizarPagamento(dinheiro.id, "dinheiro")).forma_pagamento, "dinheiro");
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

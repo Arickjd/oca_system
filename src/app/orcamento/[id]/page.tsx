@@ -7,6 +7,7 @@ import {
   formatData,
 } from "@/lib/format";
 import { ReciboAcoes } from "@/components/ReciboAcoes";
+import { PagamentoOrcamento } from "@/components/PagamentoOrcamento";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,9 @@ export default async function OrcamentoPage({ params }: Params) {
       </div>
 
       <div className="p-3 sm:p-6">
+        <div className="no-print mx-auto mb-4 max-w-[210mm]">
+          <PagamentoOrcamento id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} />
+        </div>
         {/* Recibo A4 */}
         <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-6 sm:p-10">
           {/* Cabeçalho */}

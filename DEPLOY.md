@@ -66,7 +66,7 @@ DATABASE_URL e executar a migração.
 
 ## Instalação no celular
 
-Após publicar na Vercel (HTTPS), abra a página inicial e toque em **Instalar Sistema OCA**.
+Após publicar na Vercel (HTTPS), abra o site e use a opção de instalação do navegador.
 No Android/Chrome, também é possível usar o menu ⋮ → Instalar aplicativo / Adicionar à tela inicial.
 No iPhone/Safari, use Compartilhar → Adicionar à Tela de Início.
 

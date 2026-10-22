@@ -75,10 +75,8 @@ function WholesaleControl({
 
 export function ProdutoCard({
   produto,
-  categoriaNome,
 }: {
   produto: Produto;
-  categoriaNome?: string;
 }) {
   const { quantidadeDe, adicionar, definirQuantidade } = useCart();
   const qtdPack = quantidadeDe(produto.id);
@@ -122,8 +120,8 @@ export function ProdutoCard({
           <h3 className="font-semibold text-slate-900 text-sm leading-tight line-clamp-2">
             {produto.nome}
           </h3>
-          {categoriaNome && (
-            <p className="text-xs text-slate-500 mt-0.5">{categoriaNome}</p>
+          {produto.descricao && (
+            <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap break-words">{produto.descricao}</p>
           )}
         </div>
       </div>

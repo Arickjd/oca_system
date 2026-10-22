@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import * as postgres from "./postgres";
 import type {
   Categoria,
+  FormaPagamento,
   ItemPedido,
   Pedido,
   Produto,
@@ -70,7 +71,7 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id" | "custo_pack">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id" | "custo_pack" | "descricao">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
@@ -105,14 +106,14 @@ export async function excluirProduto(id: string): Promise<boolean> {
 
 /* ------------------------------- Pedidos ------------------------------ */
 
-export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack">) {
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao">>) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
-    ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
+    ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
   });
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
-    const produto: Produto = { ...input, id: randomUUID(), descricao: "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString() };
+    const produto: Produto = { ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString() };
     produtos.push(produto);
     await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
@@ -149,6 +150,24 @@ export async function excluirPedido(id: string): Promise<boolean> {
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export async function finalizarPagamento(id: string, forma: FormaPagamento): Promise<Pedido | undefined> {
+  if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
+  const patch = { status_pagamento: "finalizado" as const, forma_pagamento: forma, pago_em: new Date().toISOString(), status: "concluido" as const };
+  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch);
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado");
+    if (!pedido) return undefined;
+    Object.assign(pedido, patch);
+    const dest = path.join(DATA_DIR, "pedidos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return pedido;
   });
   writeChain = run.catch(() => undefined);
   return run;
@@ -217,6 +236,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
       ? (Math.round(valor_total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100
       : null,
     status: "novo",
+    status_pagamento: "pendente",
     created_at: new Date().toISOString(),
   };
 

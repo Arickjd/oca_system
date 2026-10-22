@@ -38,6 +38,7 @@ export interface ItemPedido {
 }
 
 export type PedidoStatus = "novo" | "em_separacao" | "concluido" | "cancelado";
+export type FormaPagamento = "pix" | "cartao" | "dinheiro";
 
 export interface Pedido {
   id: string;
@@ -49,6 +50,9 @@ export interface Pedido {
   valor_total: number;
   lucro_bruto?: number | null; // desconhecido quando falta algum custo
   status: PedidoStatus;
+  status_pagamento?: "pendente" | "finalizado";
+  forma_pagamento?: FormaPagamento;
+  pago_em?: string;
   excluido_em?: string;
   created_at: string;
 }
