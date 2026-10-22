@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import * as postgres from "./postgres";
 import type {
   Categoria,
+  FormaPagamento,
   ItemPedido,
   Pedido,
   Produto,
@@ -154,6 +155,24 @@ export async function excluirPedido(id: string): Promise<boolean> {
   return run;
 }
 
+export async function finalizarPagamento(id: string, forma: FormaPagamento): Promise<Pedido | undefined> {
+  if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
+  const patch = { status_pagamento: "finalizado" as const, forma_pagamento: forma, pago_em: new Date().toISOString(), status: "concluido" as const };
+  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch);
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado");
+    if (!pedido) return undefined;
+    Object.assign(pedido, patch);
+    const dest = path.join(DATA_DIR, "pedidos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return pedido;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 export interface NovoItem {
   produto_id: string;
   produto_nome: string;
@@ -217,6 +236,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
       ? (Math.round(valor_total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100
       : null,
     status: "novo",
+    status_pagamento: "pendente",
     created_at: new Date().toISOString(),
   };
 

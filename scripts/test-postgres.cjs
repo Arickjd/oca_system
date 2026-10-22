@@ -117,6 +117,16 @@ async function main() {
     await api.excluirProduto(produto.id);
     await importar();
     assert.equal(await api.getProduto(produto.id), undefined);
+    assert.equal(comCusto.status_pagamento, "pendente");
+    const pagamentos = await Promise.all([api.finalizarPagamento(comCusto.id, "pix"), api.finalizarPagamento(comCusto.id, "cartao")]);
+    assert.equal(pagamentos.filter(Boolean).length, 1);
+    assert.equal((await api.getPedido(comCusto.id)).status_pagamento, "finalizado");
+    assert.equal((await api.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal(await api.finalizarPagamento("inexistente", "dinheiro"), undefined);
+    await assert.rejects(() => api.finalizarPagamento(comCusto.id, "boleto"));
+    assert.equal(await api.finalizarPagamento(pedido.id, "dinheiro"), undefined); // Excluído.
+    const dinheiro = await api.createPedido({ itens: [] });
+    assert.equal((await api.finalizarPagamento(dinheiro.id, "dinheiro")).forma_pagamento, "dinheiro");
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

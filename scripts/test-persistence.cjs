@@ -57,6 +57,13 @@ async function main() {
     assert.equal((await db.getProdutos()).length, 0);
     assert.equal(await db.atualizarProduto(produto.id, { nome: "Restaurado", preco_pack: 1, pack_quantidade: 1 }), undefined);
     assert.equal((await db.getPedido(comCusto.id)).lucro_bruto, 15);
+    assert.equal(comCusto.status_pagamento, "pendente");
+    const pagamentos = await Promise.all([db.finalizarPagamento(comCusto.id, "cartao"), db.finalizarPagamento(comCusto.id, "pix")]);
+    assert.equal(pagamentos.filter(Boolean).length, 1);
+    assert.equal((await db.getPedido(comCusto.id)).forma_pagamento, "cartao");
+    assert.equal((await db.getPedido(comCusto.id)).status_pagamento, "finalizado");
+    assert.equal(await db.finalizarPagamento("inexistente", "dinheiro"), undefined);
+    await assert.rejects(() => db.finalizarPagamento(comCusto.id, "boleto"));
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");

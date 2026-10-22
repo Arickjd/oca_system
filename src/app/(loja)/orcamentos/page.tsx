@@ -22,6 +22,9 @@ export default async function OrcamentosPage() {
         {pedido.lucro_bruto == null && <p className="text-xs text-slate-500">Custo não registrado em todos os itens</p>}
       </div></div>
       <span>{pedido.cliente_nome || "Cliente não informado"}</span>
+      <span className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${pedido.status_pagamento === "finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+        {pedido.status_pagamento === "finalizado" ? `Finalizado${pedido.forma_pagamento ? ` · ${{ pix: "Pix", cartao: "Cartão", dinheiro: "Dinheiro" }[pedido.forma_pagamento]}` : ""}` : "Pagamento pendente"}
+      </span>
       <span className="text-sm text-slate-500">{formatData(pedido.created_at)} · {pedido.itens.length} produto(s)</span>
       <span className="text-sm font-medium">Ver orçamento →</span>
       </Link>

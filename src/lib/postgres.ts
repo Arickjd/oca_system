@@ -41,6 +41,17 @@ export async function excluirProduto(id: string): Promise<boolean> {
   return !!produto;
 }
 
+export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status_pagamento" | "forma_pagamento" | "pago_em" | "status">): Promise<Pedido | undefined> {
+  const rows = await sql().query(`
+    UPDATE oca_registros SET dados = dados || $2::jsonb
+    WHERE colecao = 'pedidos' AND id = $1
+      AND dados->>'excluido_em' IS NULL
+      AND dados->>'status_pagamento' IS DISTINCT FROM 'finalizado'
+    RETURNING dados
+  `, [id, JSON.stringify(patch)]);
+  return rows[0]?.dados as Pedido | undefined;
+}
+
 type ProdutoExcluido = { id: string; excluido_em: string };
 
 // Exclusão lógica sem alterar o contador de orçamentos.
