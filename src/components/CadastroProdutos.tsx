@@ -7,7 +7,7 @@ import { formatBRL } from "@/lib/format";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import { useCart } from "@/lib/cart";
 
-const vazio = { id: "", nome: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "" };
+const vazio = { id: "", nome: "", descricao: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "" };
 const campo = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5";
 
 export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]; categorias: Categoria[] }) {
@@ -34,7 +34,7 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
     (categoria === null || (categoria === "" ? !categorias.some(c => c.id === p.categoria_id) : p.categoria_id === categoria)));
   function abrir(p?: Produto) {
     setSelecionadoDoCatalogo(false);
-    setForm(p ? { id: p.id, nome: p.nome, preco_pack: String(p.preco_pack), custo_pack: p.custo_pack ? String(p.custo_pack) : "", pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : vazio);
+    setForm(p ? { id: p.id, nome: p.nome, descricao: p.descricao ?? "", preco_pack: String(p.preco_pack), custo_pack: p.custo_pack ? String(p.custo_pack) : "", pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : vazio);
     setErro(""); setSucesso(""); setAberto(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -55,7 +55,7 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
     try {
       const res = await fetch(form.id ? "/api/produtos/" + encodeURIComponent(form.id) : "/api/produtos", {
         method: form.id ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome, preco_pack: Number(form.preco_pack), custo_pack: form.custo_pack === "" ? null : Number(form.custo_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id }),
+        body: JSON.stringify({ nome: form.nome, descricao: form.descricao, preco_pack: Number(form.preco_pack), custo_pack: form.custo_pack === "" ? null : Number(form.custo_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Não foi possível salvar.");
@@ -96,6 +96,7 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
           {nomeBusca.length >= 2 && sugestoes.length === 0 && <p role="status" className="mt-2 text-xs text-slate-500">Nenhum produto semelhante encontrado. Continue preenchendo para cadastrar um novo.</p>}
         </div>}
         {selecionadoDoCatalogo && <p role="status" className="rounded-lg bg-blue-50 p-3 text-blue-900">Produto existente selecionado. Os campos foram preenchidos; ao salvar, você atualizará este produto.</p>}
+        <label>Descrição (opcional)<textarea rows={3} className={campo} placeholder="Detalhes do produto, material, tamanho…" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} /></label>
         <label>Preço de atacado por pacote (R$)<input required type="number" min="0" step="0.01" inputMode="decimal" className={campo} value={form.preco_pack} onChange={e => setForm({ ...form, preco_pack: e.target.value })} /></label>
         <label className="text-blue-800">Compra por pacote (R$)<input type="number" min="0" step="0.01" inputMode="decimal" placeholder="---" className={campo} value={form.custo_pack} onChange={e => setForm({ ...form, custo_pack: e.target.value })} /></label>
         <RentabilidadeProduto venda={Number(form.preco_pack)} custo={Number(form.custo_pack)} />

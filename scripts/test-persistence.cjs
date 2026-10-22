@@ -19,9 +19,12 @@ async function main() {
     mod.require = name => name === "./postgres" ? { usarPostgres: () => false } : require(name);
     mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
     const db = mod.exports;
-    const produto = await db.criarProduto({ nome: "Teste", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
+    const produto = await db.criarProduto({ nome: "Teste", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
     await db.atualizarProduto(produto.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });
     assert.equal((await db.getProduto(produto.id)).nome, "Atualizado");
+    assert.equal((await db.getProduto(produto.id)).descricao, "Descrição inicial");
+    await db.atualizarProduto(produto.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12, descricao: "Nova descrição" });
+    assert.equal((await db.getProduto(produto.id)).descricao, "Nova descrição");
     const input = { itens: [{ produto_id: produto.id, produto_nome: "Snapshot", modo: "pacote", quantidade: 3, pack_quantidade: 12, preco_unitario: 15 }] };
     await Promise.all(Array.from({ length: 20 }, () => db.createPedido(input)));
     const pedidos = await db.getPedidos();

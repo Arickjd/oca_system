@@ -92,7 +92,6 @@ export function ProdutosBrowser({
               <ProdutoCard
                 key={p.id}
                 produto={p}
-                categoriaNome={nomeCategoria(p.categoria_id)}
               />
             ))}
           </div>
