@@ -64,6 +64,7 @@ async function main() {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
     }).outputText, filename);
     const api = facade.exports;
+    await require("./test-categorias.cjs")(api);
     assert.equal((await api.getProdutos()).length, 2);
     const criado = await api.criarProduto({ nome: "Via aplicação", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
     await api.atualizarProduto(criado.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });

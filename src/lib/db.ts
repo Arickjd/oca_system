@@ -56,6 +56,25 @@ export async function getCategorias(): Promise<Categoria[]> {
   return readData<Categoria[]>("categorias.json", []);
 }
 
+export async function criarCategoria(nome: string): Promise<Categoria> {
+  const nomeLimpo = typeof nome === "string" ? nome.trim().replace(/\s+/g, " ") : "";
+  if (!nomeLimpo || nomeLimpo.length > 100) throw new Error("Informe um nome de categoria com até 100 caracteres.");
+  const run = writeChain.then(async () => {
+    const categorias = await getCategorias();
+    const existente = categorias.find(c => c.nome.localeCompare(nomeLimpo, "pt-BR", { sensitivity: "base" }) === 0);
+    if (existente) return existente;
+    const categoria: Categoria = { id: randomUUID(), nome: nomeLimpo, ativo: true, created_at: new Date().toISOString() };
+    if (postgres.usarPostgres()) return postgres.inserir<Categoria>("categorias", categoria);
+    await ensureDir();
+    const dest = path.join(DATA_DIR, "categorias.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify([...categorias, categoria], null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return categoria;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 /* ------------------------------ Produtos ------------------------------ */
 
 export async function getProdutos(): Promise<Produto[]> {

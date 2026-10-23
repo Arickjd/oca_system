@@ -10,7 +10,7 @@ import { useCart } from "@/lib/cart";
 const vazio = { id: "", nome: "", descricao: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "" };
 const campo = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5";
 
-export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]; categorias: Categoria[] }) {
+export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: { produtos: Produto[]; categorias: Categoria[] }) {
   const router = useRouter();
   const { remover } = useCart();
   const [busca, setBusca] = useState("");
@@ -21,6 +21,30 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [selecionadoDoCatalogo, setSelecionadoDoCatalogo] = useState(false);
+  const [novasCategorias, setNovasCategorias] = useState<Categoria[]>([]);
+  const categorias = [...categoriasRecebidas, ...novasCategorias.filter(n => !categoriasRecebidas.some(c => c.id === n.id))];
+  const [novaCategoriaAberta, setNovaCategoriaAberta] = useState(false);
+  const [nomeCategoria, setNomeCategoria] = useState("");
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false);
+  const [erroCategoria, setErroCategoria] = useState("");
+  async function salvarCategoria(e: FormEvent) {
+    e.preventDefault();
+    setSalvandoCategoria(true); setErroCategoria("");
+    try {
+      const res = await fetch("/api/categorias", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: nomeCategoria }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Não foi possível salvar a categoria.");
+      setNovasCategorias(prev => [...prev.filter(c => c.id !== data.id), data]);
+      if (aberto) setForm(prev => ({ ...prev, categoria_id: data.id }));
+      setNovaCategoriaAberta(false); setNomeCategoria("");
+      setSucesso(`Categoria "${data.nome}" disponível para os produtos.`);
+      router.refresh();
+    } catch (error) { setErroCategoria(error instanceof Error ? error.message : "Falha ao salvar a categoria."); }
+    finally { setSalvandoCategoria(false); }
+  }
   const normalizar = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const nomeBusca = normalizar(form.nome.trim()).replace(/\s+/g, " ");
   const sugestoes = !form.id && nomeBusca.length >= 2
@@ -67,8 +91,21 @@ export function CadastroProdutos({ produtos, categorias }: { produtos: Produto[]
   return <section className="flex flex-col gap-4">
     <Link href="/" className="text-sm underline">Página inicial</Link>
     <h1 className="text-xl font-bold">Gerenciar produtos</h1>
-    <button disabled={salvando} onClick={() => abrir()} className="rounded-xl bg-slate-900 p-3 text-white">+ Novo produto</button>
+    <div className="grid gap-2 sm:grid-cols-2">
+      <button disabled={salvando || salvandoCategoria} onClick={() => abrir()} className="rounded-xl bg-slate-900 p-3 text-white">+ Novo produto</button>
+      <button type="button" disabled={salvando || salvandoCategoria} aria-expanded={novaCategoriaAberta} aria-controls="nova-categoria" onClick={() => { setNovaCategoriaAberta(true); setErroCategoria(""); setSucesso(""); }} className="rounded-xl border border-slate-300 bg-white p-3 font-medium hover:bg-slate-50">+ Nova categoria</button>
+    </div>
     {sucesso && <p role="status" className="text-green-700">{sucesso}</p>}
+    {novaCategoriaAberta && <form id="nova-categoria" onSubmit={salvarCategoria} className="flex flex-col gap-3 rounded-2xl border bg-white p-4">
+      <h2 className="font-bold">Nova categoria</h2>
+      <fieldset disabled={salvandoCategoria} className="flex flex-col gap-3">
+        <label>Nome da categoria<input autoFocus required maxLength={100} className={campo} placeholder="Ex.: Descartáveis" value={nomeCategoria} onChange={e => setNomeCategoria(e.target.value)} /></label>
+        <p className="text-sm text-slate-500">A categoria ficará disponível no cadastro e nos filtros dos produtos.</p>
+        {erroCategoria && <p role="alert" className="text-red-600">{erroCategoria}</p>}
+        <button disabled={!nomeCategoria.trim()} className="rounded-xl bg-slate-900 p-3 text-white disabled:opacity-50">{salvandoCategoria ? "Salvando…" : "Salvar categoria"}</button>
+        <button type="button" onClick={() => { setNovaCategoriaAberta(false); setNomeCategoria(""); setErroCategoria(""); }}>Cancelar</button>
+      </fieldset>
+    </form>}
     {aberto && <form onSubmit={salvar} className="rounded-2xl bg-white border p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-bold">{form.id ? "Editar produto" : "Novo produto"}</h2>
