@@ -53,6 +53,8 @@ export interface Pedido {
   status_pagamento?: "pendente" | "finalizado";
   forma_pagamento?: FormaPagamento;
   pago_em?: string;
+  revisao?: number;
+  updated_at?: string;
   excluido_em?: string;
   created_at: string;
 }

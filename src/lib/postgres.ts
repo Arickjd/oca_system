@@ -41,18 +41,30 @@ export async function excluirProduto(id: string): Promise<boolean> {
   return !!produto;
 }
 
-export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status_pagamento" | "forma_pagamento" | "pago_em" | "status">): Promise<Pedido | undefined> {
+export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status_pagamento" | "forma_pagamento" | "pago_em" | "status">, revisao?: number): Promise<Pedido | undefined> {
   const rows = await sql().query(`
     UPDATE oca_registros SET dados = dados || $2::jsonb
     WHERE colecao = 'pedidos' AND id = $1
       AND dados->>'excluido_em' IS NULL
       AND dados->>'status_pagamento' IS DISTINCT FROM 'finalizado'
+      AND ($3::integer IS NULL OR COALESCE((dados->>'revisao')::integer, 0) = $3)
     RETURNING dados
-  `, [id, JSON.stringify(patch)]);
+  `, [id, JSON.stringify(patch), revisao ?? null]);
   return rows[0]?.dados as Pedido | undefined;
 }
 
 type ProdutoExcluido = { id: string; excluido_em: string };
+
+export async function editarPedidoPendente(id: string, patch: object, revisao: number): Promise<Pedido | undefined> {
+  const rows = await sql().query(`
+    UPDATE oca_registros SET dados = dados || $2::jsonb
+    WHERE colecao = 'pedidos' AND id = $1 AND dados->>'excluido_em' IS NULL
+      AND dados->>'status_pagamento' IS DISTINCT FROM 'finalizado'
+      AND COALESCE((dados->>'revisao')::integer, 0) = $3
+    RETURNING dados
+  `, [id, JSON.stringify(patch), revisao]);
+  return rows[0]?.dados as Pedido | undefined;
+}
 
 // Exclusão lógica sem alterar o contador de orçamentos.
 export async function excluirPedido(id: string): Promise<boolean> {

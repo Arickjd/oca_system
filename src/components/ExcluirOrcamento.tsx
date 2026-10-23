@@ -22,7 +22,7 @@ export function ExcluirOrcamento({ id, numero }: { id: string; numero: number })
     }
   }
 
-  return <div className="border-t border-slate-100 pt-3">
+  return <div>
     {confirmando ? <div className="flex flex-col gap-2">
       <p className="text-sm">Excluir o orçamento #{numero}? Ele deixará de aparecer no histórico. A numeração dos próximos orçamentos será mantida.</p>
       <div className="flex gap-3">

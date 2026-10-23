@@ -127,6 +127,16 @@ async function main() {
     assert.equal(await api.finalizarPagamento(pedido.id, "dinheiro"), undefined); // Excluído.
     const dinheiro = await api.createPedido({ itens: [] });
     assert.equal((await api.finalizarPagamento(dinheiro.id, "dinheiro")).forma_pagamento, "dinheiro");
+    await require("./test-edicao.cjs")(api);
+    // A condição SQL também protege requisições de instâncias distintas.
+    const protegido = await api.createPedido({ itens: [] });
+    const disputas = await Promise.all([
+      store.editarPedidoPendente(protegido.id, { revisao: 1 }, 0),
+      store.editarPedidoPendente(protegido.id, { revisao: 1 }, 0),
+    ]);
+    assert.equal(disputas.filter(Boolean).length, 1);
+    await api.finalizarPagamento(protegido.id, "pix", 1);
+    assert.equal(await store.editarPedidoPendente(protegido.id, { revisao: 2 }, 1), undefined);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";
