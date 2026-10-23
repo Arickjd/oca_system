@@ -56,6 +56,25 @@ export async function getCategorias(): Promise<Categoria[]> {
   return readData<Categoria[]>("categorias.json", []);
 }
 
+export async function criarCategoria(nome: string): Promise<Categoria> {
+  const nomeLimpo = typeof nome === "string" ? nome.trim().replace(/\s+/g, " ") : "";
+  if (!nomeLimpo || nomeLimpo.length > 100) throw new Error("Informe um nome de categoria com até 100 caracteres.");
+  const run = writeChain.then(async () => {
+    const categorias = await getCategorias();
+    const existente = categorias.find(c => c.nome.localeCompare(nomeLimpo, "pt-BR", { sensitivity: "base" }) === 0);
+    if (existente) return existente;
+    const categoria: Categoria = { id: randomUUID(), nome: nomeLimpo, ativo: true, created_at: new Date().toISOString() };
+    if (postgres.usarPostgres()) return postgres.inserir<Categoria>("categorias", categoria);
+    await ensureDir();
+    const dest = path.join(DATA_DIR, "categorias.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify([...categorias, categoria], null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return categoria;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 /* ------------------------------ Produtos ------------------------------ */
 
 export async function getProdutos(): Promise<Produto[]> {
@@ -155,13 +174,13 @@ export async function excluirPedido(id: string): Promise<boolean> {
   return run;
 }
 
-export async function finalizarPagamento(id: string, forma: FormaPagamento): Promise<Pedido | undefined> {
+export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number): Promise<Pedido | undefined> {
   if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
   const patch = { status_pagamento: "finalizado" as const, forma_pagamento: forma, pago_em: new Date().toISOString(), status: "concluido" as const };
-  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch);
+  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch, revisao);
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
-    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado");
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
     if (!pedido) return undefined;
     Object.assign(pedido, patch);
     const dest = path.join(DATA_DIR, "pedidos.json");
@@ -187,6 +206,74 @@ export interface NovoPedido {
   telefone?: string;
   observacao?: string;
   itens: NovoItem[];
+}
+
+export class EdicaoInvalida extends Error {}
+
+export interface EdicaoPedido extends NovoPedido {
+  revisao: number;
+  itens: (NovoItem & { id?: string })[];
+}
+
+export function validarEdicaoPedido(body: unknown): EdicaoPedido {
+  if (!body || typeof body !== "object") throw new EdicaoInvalida("Dados inválidos.");
+  const b = body as EdicaoPedido;
+  if (!Number.isSafeInteger(b.revisao) || b.revisao < 0 ||
+    [b.cliente_nome, b.telefone, b.observacao].some(v => v !== undefined && typeof v !== "string") ||
+    !Array.isArray(b.itens) || b.itens.length === 0) throw new EdicaoInvalida("Revise os dados e inclua pelo menos um produto.");
+  const ids = new Set<string>();
+  let totalCentavos = 0;
+  for (const it of b.itens) {
+    if (!it || typeof it.produto_id !== "string" || !it.produto_id.trim() ||
+      typeof it.produto_nome !== "string" || !it.produto_nome.trim() ||
+      !["pacote", "unidade"].includes(it.modo) ||
+      !Number.isSafeInteger(it.quantidade) || it.quantidade < 1 ||
+      (it.modo === "pacote" && (!Number.isSafeInteger(it.pack_quantidade) || it.pack_quantidade! < 1)) ||
+      typeof it.preco_unitario !== "number" || !Number.isFinite(it.preco_unitario) || it.preco_unitario < 0 ||
+      (it.id !== undefined && (typeof it.id !== "string" || !it.id || ids.has(it.id)))) throw new EdicaoInvalida("Revise nomes, preços e quantidades dos produtos.");
+    if (it.id) ids.add(it.id);
+    totalCentavos += Math.round(Math.round(it.preco_unitario * 100) * it.quantidade);
+    if (!Number.isSafeInteger(totalCentavos)) throw new EdicaoInvalida("Valor total inválido.");
+  }
+  return b;
+}
+
+export async function editarPedido(id: string, body: unknown): Promise<Pedido | undefined> {
+  const input = validarEdicaoPedido(body);
+  const run = writeChain.then(async () => {
+    const remoto = postgres.usarPostgres();
+    const pedidos = remoto ? [] : await readData<Pedido[]>("pedidos.json", []);
+    const anterior = remoto ? await getPedido(id) : pedidos.find(p => p.id === id && !p.excluido_em);
+    if (!anterior || anterior.status_pagamento === "finalizado" || (anterior.revisao ?? 0) !== input.revisao) return undefined;
+    const catalogo = new Map((await getProdutos()).map(p => [p.id, p]));
+    const itens: ItemPedido[] = input.itens.map(it => {
+      const antigo = it.id ? anterior.itens.find(a => a.id === it.id) : undefined;
+      const produto = catalogo.get(it.produto_id);
+      if ((it.id && (!antigo || antigo.produto_id !== it.produto_id || antigo.modo !== it.modo)) || (!it.id && (!produto || !produto.ativo))) {
+        throw new EdicaoInvalida("Um produto não está mais disponível. Recarregue o orçamento.");
+      }
+      const custoAtual = produto?.custo_pack && produto.custo_pack > 0
+        ? (it.modo === "pacote" ? produto.custo_pack : produto.custo_pack / produto.pack_quantidade) : null;
+      const custo = antigo ? antigo.custo_unitario ?? null : custoAtual;
+      const preco = Math.round(it.preco_unitario * 100) / 100;
+      return { id: antigo?.id ?? randomUUID(), produto_id: it.produto_id, produto_nome: it.produto_nome.trim(),
+        modo: it.modo, pack_quantidade: it.modo === "pacote" ? it.pack_quantidade : undefined,
+        quantidade: it.quantidade, preco_unitario: preco, custo_unitario: custo, subtotal: Math.round(preco * it.quantidade * 100) / 100 };
+    });
+    const total = itens.reduce((s, it) => s + Math.round(it.subtotal * 100), 0) / 100;
+    const patch = { cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
+      itens, valor_total: total, lucro_bruto: itens.every(it => it.custo_unitario != null)
+        ? (Math.round(total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100 : null,
+      updated_at: new Date().toISOString(), revisao: input.revisao + 1 };
+    if (remoto) return postgres.editarPedidoPendente(id, patch, input.revisao);
+    Object.assign(anterior, patch);
+    const dest = path.join(DATA_DIR, "pedidos.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return anterior;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
 }
 
 export async function createPedido(input: NovoPedido): Promise<Pedido> {

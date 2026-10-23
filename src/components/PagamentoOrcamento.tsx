@@ -6,7 +6,7 @@ import type { FormaPagamento } from "@/lib/types";
 
 const nomes = { pix: "Pix", cartao: "Cartão", dinheiro: "Dinheiro" };
 
-export function PagamentoOrcamento({ id, finalizado, forma }: { id: string; finalizado: boolean; forma?: FormaPagamento }) {
+export function PagamentoOrcamento({ id, finalizado, forma, revisao }: { id: string; finalizado: boolean; forma?: FormaPagamento; revisao: number }) {
   const router = useRouter();
   const [selecionada, setSelecionada] = useState<FormaPagamento | "">("");
   const [salvando, setSalvando] = useState(false);
@@ -18,7 +18,7 @@ export function PagamentoOrcamento({ id, finalizado, forma }: { id: string; fina
     setSalvando(true); setErro("");
     try {
       const res = await fetch(`/api/pedidos/${encodeURIComponent(id)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ forma_pagamento: selecionada }),
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ forma_pagamento: selecionada, revisao }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

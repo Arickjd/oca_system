@@ -19,6 +19,7 @@ async function main() {
     mod.require = name => name === "./postgres" ? { usarPostgres: () => false } : require(name);
     mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
     const db = mod.exports;
+    await require("./test-categorias.cjs")(db);
     const produto = await db.criarProduto({ nome: "Teste", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
     await db.atualizarProduto(produto.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });
     assert.equal((await db.getProduto(produto.id)).nome, "Atualizado");
@@ -64,6 +65,7 @@ async function main() {
     assert.equal((await db.getPedido(comCusto.id)).status_pagamento, "finalizado");
     assert.equal(await db.finalizarPagamento("inexistente", "dinheiro"), undefined);
     await assert.rejects(() => db.finalizarPagamento(comCusto.id, "boleto"));
+    await require("./test-edicao.cjs")(db);
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");

@@ -56,6 +56,17 @@ Cada produto possui somente **preço de atacado por pacote**. Depois de adicion�
 o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
 
+## Histórico, relatórios e edição de orçamentos
+
+- `/orcamentos` abre em Hoje; Últimos 7 dias inclui hoje e os seis dias anteriores.
+- O intervalo personalizado inclui as duas datas, considerando a criação do orçamento no fuso America/Sao_Paulo.
+- Os cartões de resumo e PDFs usam o mesmo período. Os relatórios incluem todos os orçamentos não excluídos, separando pendentes e finalizados; não são um extrato por data de recebimento.
+- PDF resumido: uma linha por orçamento. PDF detalhado: todos os itens registrados em cada orçamento, inclusive produtos removidos do catálogo depois da venda.
+- Editar e Efetivar aparecem somente para pendentes. A edição preserva número, data e custos históricos dos itens existentes; novos itens usam o custo atual do catálogo. Não modifica o catálogo nem o carrinho.
+- Edições concorrentes e confirmações de pagamento sobre versões antigas são recusadas. Recarregue a página para conferir os dados atuais.
+- Não é necessária migração para estes recursos: os novos campos de revisão ficam nos registros JSONB existentes.
+- `npm run test:orcamentos` valida períodos e gera PDFs de teste em `tmp/pdfs/`. Os testes de persistência também verificam edição e pagamento concorrentes.
+
 ## Observação sobre hospedagem
 
 Siga [DEPLOY.md](DEPLOY.md) para conectar Neon à Vercel, configurar

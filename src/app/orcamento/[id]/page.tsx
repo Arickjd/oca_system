@@ -26,6 +26,7 @@ export default async function OrcamentoPage({ params }: Params) {
         <div className="max-w-[210mm] mx-auto px-3 py-3">
           <Link href="/orcamentos" className="inline-block mb-3 text-sm underline">Todos os orçamentos</Link>
           <ReciboAcoes
+            key={pedido.revisao ?? 0}
             pedidoId={pedido.id}
             numero={pedido.numero}
             shareTitle={`${config.distribuidora_nome} — Orçamento #${pedido.numero}`}
@@ -34,8 +35,8 @@ export default async function OrcamentoPage({ params }: Params) {
       </div>
 
       <div className="p-3 sm:p-6">
-        <div className="no-print mx-auto mb-4 max-w-[210mm]">
-          <PagamentoOrcamento id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} />
+        <div id="pagamento" className="no-print mx-auto mb-4 max-w-[210mm] scroll-mt-52">
+          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} />
         </div>
         {/* Recibo A4 */}
         <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-6 sm:p-10">

@@ -15,6 +15,7 @@ export function CartBar() {
     pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/gerenciar-produtos") ||
     pathname?.startsWith("/orcamentos") ||
+    pathname?.startsWith("/orcamento/") ||
     totalItens === 0;
 
   if (esconder) return null;
