@@ -1,28 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 
 export function SiteHeader() {
   const { totalItens } = useCart();
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
-      <div className="max-w-3xl mx-auto px-3 h-14 flex items-center justify-between gap-2">
-        <Link href="/" aria-label="Ir para a página inicial" className="flex items-center gap-2">
+      <div className="max-w-3xl mx-auto px-2 sm:px-3 h-16 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-2">
+        <Link href="/" aria-label="Ir para a página inicial" className="min-w-0 justify-self-start">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
             alt="OCA Distribuidora"
-            className="h-9 w-auto object-contain"
+            className="h-7 w-auto max-w-10 object-contain sm:h-9 sm:max-w-none"
           />
         </Link>
 
-        <Link href="/orcamentos" className="text-sm font-medium text-slate-700">Orçamentos</Link>
+        <nav aria-label="Navegação principal" className="flex items-center justify-center gap-0.5 rounded-xl bg-slate-100 p-1">
+          {[{ href: "/orcamentos", nome: "Orçamentos" }, { href: "/vendas", nome: "Vendas" }, { href: "/relatorios", nome: "Relatórios" }].map(link => {
+            const ativo = pathname === link.href || (link.href === "/orcamentos" && pathname.startsWith("/orcamento/"));
+            return <Link key={link.href} href={link.href} aria-current={ativo ? "page" : undefined} className={`rounded-lg px-1.5 py-2.5 text-[11px] font-semibold sm:px-3 sm:text-sm ${ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{link.nome}</Link>;
+          })}
+        </nav>
         <Link
           href="/carrinho"
           aria-label="Ver carrinho"
-          className="relative inline-flex items-center gap-2 rounded-full bg-slate-900 text-white px-4 py-2 text-sm font-medium active:scale-95 transition"
+          className="relative inline-flex items-center justify-self-end gap-2 rounded-full bg-slate-900 text-white p-2 sm:px-4 text-sm font-medium active:scale-95 transition"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

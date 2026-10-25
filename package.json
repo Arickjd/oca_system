@@ -17,7 +17,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-database.mjs",
     "test:postgres": "node scripts/test-postgres.cjs",
     "test:custos": "node scripts/test-custos.cjs",
-    "test:orcamentos": "node scripts/test-orcamentos.cjs"
+    "test:orcamentos": "node scripts/test-orcamentos.cjs",
+    "test:historico": "node scripts/test-historico.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

@@ -38,9 +38,11 @@ export default async function Landing() {
         </svg>
       </Link>
 
-      <Link href="/orcamentos" className="text-sm font-medium underline">
-        Orçamentos realizados
-      </Link>
+      <nav aria-label="Histórico e relatórios" className="flex flex-wrap justify-center gap-5 text-sm font-medium underline">
+        <Link href="/orcamentos">Orçamentos</Link>
+        <Link href="/vendas">Vendas</Link>
+        <Link href="/relatorios">Relatórios</Link>
+      </nav>
       <Link
         href="/gerenciar-produtos"
         className="rounded-2xl border border-slate-200 p-5 w-full max-w-sm hover:border-amber-500"

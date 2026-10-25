@@ -66,6 +66,7 @@ async function main() {
     assert.equal(await db.finalizarPagamento("inexistente", "dinheiro"), undefined);
     await assert.rejects(() => db.finalizarPagamento(comCusto.id, "boleto"));
     await require("./test-edicao.cjs")(db);
+    await require("./test-descontos.cjs")(db);
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");

@@ -24,7 +24,7 @@ export default async function OrcamentoPage({ params }: Params) {
       {/* Barra de ações (não imprime) */}
       <div className="no-print sticky top-0 z-20 bg-slate-100/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-[210mm] mx-auto px-3 py-3">
-          <Link href="/orcamentos" className="inline-block mb-3 text-sm underline">Todos os orçamentos</Link>
+          <Link href={pedido.status_pagamento === "finalizado" ? "/vendas" : "/orcamentos"} className="inline-block mb-3 text-sm underline">{pedido.status_pagamento === "finalizado" ? "Voltar às vendas" : "Voltar aos orçamentos"}</Link>
           <ReciboAcoes
             key={pedido.revisao ?? 0}
             pedidoId={pedido.id}
@@ -39,7 +39,7 @@ export default async function OrcamentoPage({ params }: Params) {
           <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} />
         </div>
         {/* Recibo A4 */}
-        <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-6 sm:p-10">
+        <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-4 sm:p-10">
           {/* Cabeçalho */}
           <header className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
             <div className="flex items-center gap-3">
@@ -86,13 +86,13 @@ export default async function OrcamentoPage({ params }: Params) {
 
           {/* Itens */}
           <section className="py-5">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full table-fixed text-xs sm:text-sm border-collapse break-words">
               <thead>
                 <tr className="text-left text-slate-400 border-b border-slate-200">
-                  <th className="py-2 font-medium">Produto</th>
-                  <th className="py-2 font-medium text-center w-14">Qtd</th>
-                  <th className="py-2 font-medium text-right w-24">V. Unit.</th>
-                  <th className="py-2 font-medium text-right w-24">Subtotal</th>
+                  <th className="py-2 font-medium w-[36%]">Produto</th>
+                  <th className="py-2 font-medium text-center w-[8%]">Qtd</th>
+                  <th className="py-2 font-medium text-right w-[34%]">Valores por item</th>
+                  <th className="py-2 pl-2 font-medium text-right w-[22%]">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,9 +113,13 @@ export default async function OrcamentoPage({ params }: Params) {
                       {it.quantidade}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      {formatBRL(it.preco_unitario)}
+                      {(it.desconto_unitario ?? 0) > 0 ? <>
+                        <span className="block text-xs text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
+                        <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario ?? 0)}</span>
+                        <span className="block font-medium text-emerald-800">Valor final: {formatBRL(it.preco_unitario)}</span>
+                      </> : <span className="block font-medium text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>}
                     </td>
-                    <td className="py-2 text-right tabular-nums font-medium">
+                    <td className="py-2 pl-2 text-right tabular-nums font-medium">
                       {formatBRL(it.subtotal)}
                     </td>
                   </tr>
@@ -126,11 +130,14 @@ export default async function OrcamentoPage({ params }: Params) {
 
           {/* Total */}
           <section className="flex justify-end border-t-2 border-slate-900 pt-3">
-            <div className="w-full sm:w-64 flex items-center justify-between">
+            <div className="w-full sm:w-72">
+              {pedido.itens.some(it => (it.desconto_unitario ?? 0) > 0) && <p className="mb-2 text-right text-sm text-emerald-800">Desconto total: {formatBRL(pedido.itens.reduce((s, it) => s + Math.round((it.desconto_unitario ?? 0) * it.quantidade * 100), 0) / 100)}</p>}
+              <div className="flex items-center justify-between">
               <span className="font-medium text-slate-600">Total</span>
               <span className="text-2xl font-bold tabular-nums">
                 {formatBRL(pedido.valor_total)}
               </span>
+              </div>
             </div>
           </section>
 

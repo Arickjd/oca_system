@@ -46,7 +46,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           typeof item.preco_unitario === "number" && Number.isFinite(item.preco_unitario) && item.preco_unitario >= 0 &&
           Number.isSafeInteger(item.quantidade) && item.quantidade > 0 &&
           Number.isSafeInteger(item.pack_quantidade) && item.pack_quantidade > 0
-        ));
+        ).map(item => ({ ...item, preco_original: typeof item.preco_original === "number" && Number.isFinite(item.preco_original) && item.preco_original >= 0 ? item.preco_original : item.preco_unitario })));
       }
     } catch {
       /* ignore */
@@ -67,7 +67,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const adicionar = (item: CartItem) => {
     setItens((atual) => {
       const idx = atual.findIndex((i) => i.produto_id === item.produto_id);
-      if (idx === -1) return [...atual, item];
+      if (idx === -1) return [...atual, { ...item, preco_original: item.preco_original ?? item.preco_unitario }];
       const copia = [...atual];
       copia[idx] = {
         ...copia[idx],

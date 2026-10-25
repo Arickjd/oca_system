@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Pedido, Produto } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 
-type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string };
+type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string; preco_original: number };
 const campo = "mt-1 w-full min-w-0 rounded-xl border border-slate-300 bg-white p-2.5 text-sm";
 
 export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido; produtos: Produto[]; retorno: string }) {
@@ -14,7 +14,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
   const [telefone, setTelefone] = useState(pedido.telefone);
   const [observacao, setObservacao] = useState(pedido.observacao);
   const [itens, setItens] = useState<Linha[]>(pedido.itens.map(it => ({ chave: it.id, id: it.id, produto_id: it.produto_id,
-    produto_nome: it.produto_nome, modo: it.modo, pack_quantidade: String(it.pack_quantidade ?? 1), quantidade: String(it.quantidade), preco_unitario: String(it.preco_unitario) })));
+    produto_nome: it.produto_nome, modo: it.modo, pack_quantidade: String(it.pack_quantidade ?? 1), quantidade: String(it.quantidade), preco_unitario: String(it.preco_unitario), preco_original: it.preco_original ?? it.preco_unitario })));
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -23,7 +23,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
   const total = itens.reduce((s, it) => s + Math.round(Number(it.preco_unitario) * Number(it.quantidade) * 100), 0) / 100;
   function alterar(chave: string, patch: Partial<Linha>) { setItens(lista => lista.map(it => it.chave === chave ? { ...it, ...patch } : it)); }
   function adicionar(p: Produto) {
-    setItens(lista => [...lista, { chave: crypto.randomUUID(), produto_id: p.id, produto_nome: p.nome, modo: "pacote", pack_quantidade: String(p.pack_quantidade), quantidade: "1", preco_unitario: String(p.preco_pack) }]);
+    setItens(lista => [...lista, { chave: crypto.randomUUID(), produto_id: p.id, produto_nome: p.nome, modo: "pacote", pack_quantidade: String(p.pack_quantidade), quantidade: "1", preco_unitario: String(p.preco_pack), preco_original: p.preco_pack }]);
     setBusca("");
   }
   async function salvar(e: FormEvent) {
@@ -59,8 +59,13 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
           <label className="block text-sm">Produto<input required value={it.produto_nome} onChange={e => alterar(it.chave, { produto_nome: e.target.value })} className={campo} /></label>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <label className="min-w-0 text-sm">Quantidade<input required type="number" min="1" step="1" value={it.quantidade} onChange={e => alterar(it.chave, { quantidade: e.target.value })} className={campo} /></label>
-            <label className="min-w-0 text-sm">Preço (R$)/{it.modo === "pacote" ? "pacote" : "unidade"}<input required type="number" min="0" step="0.01" inputMode="decimal" value={it.preco_unitario} onChange={e => alterar(it.chave, { preco_unitario: e.target.value })} className={campo} /></label>
+            <label className="min-w-0 text-sm">Valor da venda (R$)/{it.modo === "pacote" ? "pacote" : "unidade"}<input required type="number" min="0" step="0.01" inputMode="decimal" value={it.preco_unitario} onChange={e => alterar(it.chave, { preco_unitario: e.target.value })} className={campo} /></label>
             {it.modo === "pacote" && <label className="min-w-0 text-sm">Itens por pacote<input required type="number" min="1" step="1" value={it.pack_quantidade} onChange={e => alterar(it.chave, { pack_quantidade: e.target.value })} className={campo} /></label>}
+          </div>
+          <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm">
+            <p className="text-slate-600">Valor original: {formatBRL(it.preco_original)}</p>
+            <p className="font-medium text-emerald-800">Desconto por {it.modo === "pacote" ? "pacote" : "unidade"}: {formatBRL(Math.max(0, Math.round((it.preco_original - Number(it.preco_unitario)) * 100)) / 100)}</p>
+            <p className="text-xs text-emerald-800">O valor negociado vale apenas para este orçamento.</p>
           </div>
           <p className="mt-3 text-right text-sm">Subtotal: <strong>{formatBRL(Number(it.preco_unitario) * Number(it.quantidade))}</strong></p>
         </article>)}

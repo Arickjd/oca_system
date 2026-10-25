@@ -129,6 +129,7 @@ async function main() {
     const dinheiro = await api.createPedido({ itens: [] });
     assert.equal((await api.finalizarPagamento(dinheiro.id, "dinheiro")).forma_pagamento, "dinheiro");
     await require("./test-edicao.cjs")(api);
+    await require("./test-descontos.cjs")(api);
     // A condição SQL também protege requisições de instâncias distintas.
     const protegido = await api.createPedido({ itens: [] });
     const disputas = await Promise.all([

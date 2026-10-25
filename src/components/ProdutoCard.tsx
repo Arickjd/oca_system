@@ -86,6 +86,7 @@ export function ProdutoCard({
       produto_id: produto.id,
       nome: produto.nome,
       preco_unitario: produto.preco_pack,
+      preco_original: produto.preco_pack,
       pack_quantidade: produto.pack_quantidade,
       imagem_url: produto.imagem_url,
       quantidade: 1,
