@@ -1,3 +1,4 @@
+import { verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getProduto, atualizarProduto, excluirProduto } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -7,6 +8,7 @@ type Params = { params: Promise<{ id: string }> };
 
 // O carrinho atualiza somente nome e apresentação; preço é negociado por venda.
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   let patch;
   try {
@@ -29,6 +31,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   try {
     if (!await excluirProduto(id)) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
@@ -40,6 +43,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 }
 
 export async function PUT(req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   let patch;
   try { patch = await validarProduto(await req.json()); }
@@ -57,6 +61,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   const produto = await getProduto(id);
   if (!produto) {

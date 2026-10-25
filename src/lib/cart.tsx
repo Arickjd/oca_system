@@ -10,8 +10,6 @@ import {
 } from "react";
 import type { CartItem } from "./types";
 
-const STORAGE_KEY = "oca_carrinho_atacado_v2";
-
 type CartItemPatch = Partial<
   Pick<CartItem, "nome" | "preco_unitario" | "pack_quantidade" | "quantidade">
 >;
@@ -31,14 +29,16 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children, usuarioId }: { children: ReactNode; usuarioId: string | null }) {
   const [itens, setItens] = useState<CartItem[]>([]);
   const [carregado, setCarregado] = useState(false);
+  const storageKey = usuarioId ? `oca_carrinho_atacado_v3_${usuarioId}` : null;
 
   // Carrega do localStorage no cliente
   useEffect(() => {
+    if (!storageKey) { setItens([]); setCarregado(true); return; }
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(storageKey);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (Array.isArray(parsed)) setItens(parsed.filter((item): item is CartItem =>
@@ -52,17 +52,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     setCarregado(true);
-  }, []);
+  }, [storageKey]);
 
   // Persiste sempre que muda
   useEffect(() => {
-    if (!carregado) return;
+    if (!carregado || !storageKey) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(itens));
+      window.localStorage.setItem(storageKey, JSON.stringify(itens));
     } catch {
       /* ignore */
     }
-  }, [itens, carregado]);
+  }, [itens, carregado, storageKey]);
 
   const adicionar = (item: CartItem) => {
     setItens((atual) => {

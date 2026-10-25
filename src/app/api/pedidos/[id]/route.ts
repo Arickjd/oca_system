@@ -1,3 +1,4 @@
+import { verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getPedido, excluirPedido, finalizarPagamento, editarPedido, EdicaoInvalida } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -7,6 +8,7 @@ import type { FormaPagamento } from "@/lib/types";
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   try {
     const pedido = await editarPedido(id, await req.json().catch(() => null));
@@ -21,6 +23,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   const body = await req.json().catch(() => null);
   if (!body || !["pix", "cartao", "dinheiro"].includes(body.forma_pagamento)) {
@@ -42,6 +45,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   try {
     if (!await excluirPedido(id)) {
@@ -56,6 +60,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
   const pedido = await getPedido(id);
   if (!pedido) {

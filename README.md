@@ -1,8 +1,8 @@
 # OCA Distribuidora — Sistema de Orçamentos
 
-Aplicação web **mobile-first** para o dono da OCA Distribuidora montar pedidos de
-atacado pelo celular e gerar um **orçamento em formato A4 (recibo)** — sem perfis de
-usuário, painel administrativo ou controle de estoque.
+Aplicação web **mobile-first** para a equipe da OCA Distribuidora montar pedidos de
+atacado pelo celular e gerar um **orçamento em formato A4 (recibo)**. O acesso exige
+login; todos os usuários têm as mesmas funções, sem painel administrativo ou controle de estoque.
 
 Baseada na especificação em [`Especificacao_Distribuidora_Bebidas.md`](Especificacao_Distribuidora_Bebidas.md),
 com o fluxo simplificado para uso interno do proprietário.
@@ -27,6 +27,18 @@ Para produção:
 npm run build
 npm run start
 ```
+
+## Login e configuração para deploy
+
+- `/` é a tela de login, com Jardel, Jairo, Gisele e Keylane. A senha inicial compartilhada é `1012`.
+- Após entrar, `/home` mostra o header padrão e os botões Montar pedido e Gerenciar produtos. A logo do header volta para essa home.
+- Configure **AUTH_SECRET** no `.env.local` e nas variáveis de ambiente da Vercel (Production e Preview). Deve ter pelo menos 32 caracteres aleatórios. Gere com `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"`. Não publique essa chave no Git e mantenha o valor entre deploys para preservar as sessões.
+- As sessões são assinadas com a biblioteca `jose` e armazenadas em cookie HttpOnly. Manter conectado dura até 30 dias; sem marcar, o cookie é de sessão e o token dura no máximo 12 horas. Sair remove a sessão apenas do navegador atual.
+- Páginas, APIs e PDFs exigem sessão válida. PDFs baixados podem ser compartilhados como arquivos; links diretos do site exigem login.
+- O login limita tentativas repetidas por endereço de acesso. Na Vercel, a contagem é atômica no PostgreSQL usando registros próprios na coleção `config`, sem alterar a configuração principal. No desenvolvimento sem banco, a contagem fica na memória do servidor.
+- Cada usuário tem seu carrinho separado no dispositivo. O responsável é registrado pelo servidor na criação do orçamento e permanece nas edições e no PDF. Orçamentos anteriores sem responsável continuam sem atribuição retroativa.
+- Não precisa executar migração: o responsável usa o JSONB já existente e os usuários são fixos.
+- `npm run test:auth` verifica sessões, credenciais, expiração, limite e atribuição. `node scripts/test-auth-http.mjs http://localhost:3015` testa o acesso HTTP em uma prévia local com DATABASE_URL e VERCEL vazias, sem alterar produtos ou orçamentos.
 
 ## Estrutura
 
@@ -67,6 +79,13 @@ sem inventar descontos retroativos. Os campos são salvos no JSONB existente e n
 exigem migração do banco.
 
 ## Histórico, relatórios e edição de orçamentos
+
+- Na consulta individual, **Imprimir cupom** abre `/orcamento/[id]/cupom`, com prévia para bobina de 80 mm. A altura de impressão acompanha o conteúdo. Selecione a impressora e o papel de 80 mm, escala 100%, sem cabeçalho/rodapé do navegador. O documento é não fiscal, inclui descontos e pagamento e não exibe custo ou lucro. O download e compartilhamento do PDF A4 continuam disponíveis na consulta principal.
+
+- Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.
+- A exportação inclui registros excluídos logicamente, custos e responsáveis. IDs preservam os vínculos entre abas. A leitura PostgreSQL usa uma única instrução para manter consistência entre registros e contadores; no modo local, aguarda as escritas pendentes.
+- Os registros brutos preservam campos adicionais e JSON extenso em partes numeradas. Os contadores são texto para preservar precisão. As datas visíveis usam Brasília e o JSON preserva os timestamps originais. A exportação exige login e não inclui variáveis de ambiente ou credenciais externas ao banco. Não há restauração/importação automática por esse botão.
+- `npm run test:exportacao` confere o arquivo gerado com dados fictícios. Nenhuma migração de banco é necessária.
 
 - `/orcamentos` mostra somente pagamentos pendentes, com Hoje e seleção de outros dias com pendências e respectivas quantidades.
 - `/vendas` mostra somente pagamentos finalizados, com Hoje, Últimos 7 dias e intervalo personalizado.

@@ -1,16 +1,21 @@
+import { verificarAcessoApi, obterSessao } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getPedidos, createPedido, type NovoItem } from "@/lib/db";
 import { revalidarHistorico } from "@/lib/revalidarHistorico";
 
 export const dynamic = "force-dynamic";
 
-// O sistema possui um único usuário: o dono da distribuidora.
+// O responsável pelo orçamento vem da sessão, nunca de um nome enviado pelo cliente.
 export async function GET() {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const pedidos = await getPedidos();
   return NextResponse.json(pedidos);
 }
 
 export async function POST(req: NextRequest) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
+  const sessao = await obterSessao();
+  if (!sessao) return NextResponse.json({ error: "Entre novamente." }, { status: 401 });
   const body = await req.json().catch(() => ({}));
   const itensRaw = Array.isArray(body?.itens) ? body.itens : [];
 
@@ -51,6 +56,7 @@ export async function POST(req: NextRequest) {
     cliente_nome: body?.cliente_nome,
     telefone: body?.telefone,
     observacao: body?.observacao,
+    criado_por: sessao.usuario,
     itens,
   });
 

@@ -6,7 +6,8 @@
     "node": ">=22 <25"
   },
   "overrides": {
-    "postcss": "8.5.31"
+    "postcss": "8.5.31",
+    "exceljs": { "uuid": "^11.1.1" }
   },
   "description": "OCA Distribuidora - Sistema de orçamentos e pedidos (mobile-first)",
   "scripts": {
@@ -18,10 +19,15 @@
     "test:postgres": "node scripts/test-postgres.cjs",
     "test:custos": "node scripts/test-custos.cjs",
     "test:orcamentos": "node scripts/test-orcamentos.cjs",
-    "test:historico": "node scripts/test-historico.cjs"
+    "test:historico": "node scripts/test-historico.cjs",
+    "test:auth": "node scripts/test-auth.cjs",
+    "test:exportacao": "node scripts/test-exportacao.cjs",
+    "test:cupom": "node scripts/test-cupom.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
+    "exceljs": "^4.4.0",
+    "jose": "^6.2.13",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
     "next": "^15.5.28",

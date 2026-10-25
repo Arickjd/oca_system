@@ -48,6 +48,7 @@ export interface Pedido {
   cliente_nome: string;
   telefone: string;
   observacao: string;
+  criado_por?: { id: string; nome: string };
   itens: ItemPedido[];
   valor_total: number;
   lucro_bruto?: number | null; // desconhecido quando falta algum custo

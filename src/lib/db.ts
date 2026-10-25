@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import * as postgres from "./postgres";
+import type { RegistroBanco, SnapshotBanco } from "./snapshotBanco";
 import type {
   Categoria,
   FormaPagamento,
@@ -51,6 +52,23 @@ export function writeData(file: string, data: unknown): Promise<void> {
 }
 
 /* ----------------------------- Categorias ----------------------------- */
+
+export async function lerBancoCompleto(): Promise<SnapshotBanco> {
+  if (postgres.usarPostgres()) return postgres.lerBancoCompleto();
+  const run = writeChain.then(async () => {
+    const registros: RegistroBanco[] = [];
+    for (const colecao of ["produtos", "categorias", "pedidos"]) {
+      const dados = await readData<(Record<string, unknown> & { id: string })[]>(`${colecao}.json`, []);
+      for (const registro of dados) registros.push({ colecao, id: registro.id, dados: registro });
+    }
+    const config = await readData<Record<string, unknown> | null>("config.json", null);
+    if (config) registros.push({ colecao: "config", id: "principal", dados: config });
+    const maior = registros.filter(r => r.colecao === "pedidos").reduce((max, r) => Math.max(max, Number(r.dados.numero) || 0), 0);
+    return { registros, contadores: [{ id: "pedidos", valor: String(maior) }], gerado_em: new Date().toISOString(), origem: "local" as const };
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
 
 export async function getCategorias(): Promise<Categoria[]> {
   return readData<Categoria[]>("categorias.json", []);
@@ -205,6 +223,7 @@ export interface NovoPedido {
   cliente_nome?: string;
   telefone?: string;
   observacao?: string;
+  criado_por?: { id: string; nome: string };
   itens: NovoItem[];
 }
 
@@ -325,6 +344,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     cliente_nome: (input.cliente_nome ?? "").trim(),
     telefone: (input.telefone ?? "").trim(),
     observacao: (input.observacao ?? "").trim(),
+    criado_por: input.criado_por,
     itens,
     valor_total,
     lucro_bruto: itens.length > 0 && itens.every(it => it.custo_unitario != null)

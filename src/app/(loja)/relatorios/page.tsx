@@ -4,6 +4,7 @@ import { formatBRL } from "@/lib/format";
 import { FiltroOrcamentos } from "@/components/FiltroOrcamentos";
 import { RelatorioOrcamentos } from "@/components/RelatorioOrcamentos";
 import { GraficoOrcamentos } from "@/components/GraficoOrcamentos";
+import { ExportarBanco } from "@/components/ExportarBanco";
 import { resolverPeriodo, filtrarPeriodo, resumoPeriodo, dataCurta } from "@/lib/periodoOrcamentos";
 
 export const dynamic = "force-dynamic";
@@ -28,5 +29,6 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
     </div>
     <GraficoOrcamentos pedidos={pedidos} periodo={periodo} />
     <RelatorioOrcamentos key={`${periodo.inicio}-${periodo.fim}`} periodo={periodo} vazio={!pedidos.length} />
+    <ExportarBanco />
   </section>;
 }

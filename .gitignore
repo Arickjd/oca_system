@@ -31,3 +31,4 @@ next-env.d.ts
 # dados temporários de escrita
 /data/*.tmp
 /tmp/pdfs/
+/tmp/xlsx/
