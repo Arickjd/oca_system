@@ -5,6 +5,29 @@ import { validarProduto } from "@/lib/validarProduto";
 
 type Params = { params: Promise<{ id: string }> };
 
+// O carrinho atualiza somente nome e apresentação; preço é negociado por venda.
+export async function PATCH(req: NextRequest, { params }: Params) {
+  const { id } = await params;
+  let patch;
+  try {
+    const body = await req.json();
+    const validado = await validarProduto({ nome: body?.nome, pack_quantidade: body?.pack_quantidade, preco_pack: 0 });
+    patch = { nome: validado.nome, pack_quantidade: validado.pack_quantidade };
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Dados inválidos." }, { status: 400 });
+  }
+  try {
+    const produto = await atualizarProduto(id, patch);
+    if (!produto) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    revalidatePath("/produtos");
+    revalidatePath("/categorias");
+    revalidatePath("/gerenciar-produtos");
+    return NextResponse.json(produto);
+  } catch {
+    return NextResponse.json({ error: "Não foi possível salvar o catálogo. Tente novamente." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   try {

@@ -33,6 +33,8 @@ export interface ItemPedido {
   pack_quantidade?: number;
   quantidade: number;
   preco_unitario: number; // preço registrado no pedido (pedidos antigos podem ser unitários)
+  preco_original?: number; // preço de referência congelado para esta venda
+  desconto_unitario?: number; // diferença positiva entre preço original e negociado
   subtotal: number;
   custo_unitario?: number | null; // snapshot interno na finalização
 }
@@ -72,6 +74,7 @@ export interface CartItem {
   produto_id: string;
   nome: string;
   preco_unitario: number;
+  preco_original?: number;
   pack_quantidade: number;
   imagem_url: string;
   quantidade: number;

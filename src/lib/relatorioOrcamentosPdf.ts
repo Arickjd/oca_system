@@ -46,11 +46,11 @@ export function gerarRelatorioOrcamentos(pedidos: Pedido[], periodo: Periodo, ti
       texto(`${formatData(p.created_at)} | ${status(p)} | ${pagamento(p)} | Total: ${formatBRL(p.valor_total)}`, 9);
       autoTable(doc, {
         startY: y + 2, margin: { left: 15, right: 15, top: 18, bottom: 22 },
-        head: [["Produto", "Apresentação", "Qtd", "Preço", "Subtotal"]],
-        body: p.itens.map(it => [it.produto_nome, it.modo === "pacote" ? `Pacote com ${it.pack_quantidade ?? 1}` : "Unidade", String(it.quantidade), formatBRL(it.preco_unitario), formatBRL(it.subtotal)]),
+        head: [["Produto / apresentação", "Qtd", "Valor original", "Valor final", "Subtotal"]],
+        body: p.itens.map(it => [it.produto_nome + "\n" + (it.modo === "pacote" ? `Pacote com ${it.pack_quantidade ?? 1}` : "Unidade"), String(it.quantidade), formatBRL(it.preco_original ?? it.preco_unitario), formatBRL(it.preco_unitario) + ((it.desconto_unitario ?? 0) > 0 ? "\nCom desconto" : ""), formatBRL(it.subtotal)]),
         styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak" },
         headStyles: { fillColor: [51, 65, 85] },
-        columnStyles: { 0: { cellWidth: 72 }, 1: { cellWidth: 32 }, 2: { cellWidth: 14, halign: "center" }, 3: { cellWidth: 31, halign: "right" }, 4: { cellWidth: 31, halign: "right" } },
+        columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 14, halign: "center" }, 2: { cellWidth: 32, halign: "right" }, 3: { cellWidth: 32, halign: "right" }, 4: { cellWidth: 32, halign: "right" } },
       });
       y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
     }

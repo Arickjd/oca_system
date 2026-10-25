@@ -56,6 +56,16 @@ Cada produto possui somente **preço de atacado por pacote**. Depois de adicion�
 o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
 
+O preço negociado no carrinho vale somente para aquela venda: não altera o preço
+global do produto. Nome e itens por pacote continuam atualizando o catálogo.
+Cada item do orçamento guarda o preço original e o desconto por pacote/unidade;
+o total e o lucro usam o preço final negociado. O recibo, PDF e relatório detalhado
+mostram o valor original e o valor final, identificando os itens com desconto.
+Edições posteriores preservam o preço original registrado, mesmo que o catálogo
+mude. Orçamentos antigos sem essa referência usam seu preço registrado como base,
+sem inventar descontos retroativos. Os campos são salvos no JSONB existente e não
+exigem migração do banco.
+
 ## Histórico, relatórios e edição de orçamentos
 
 - `/orcamentos` abre em Hoje; Últimos 7 dias inclui hoje e os seis dias anteriores.

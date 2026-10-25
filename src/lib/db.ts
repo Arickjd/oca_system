@@ -90,7 +90,7 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade"> & Partial<Pick<Produto, "categoria_id" | "custo_pack" | "descricao">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "pack_quantidade"> & Partial<Pick<Produto, "preco_pack" | "categoria_id" | "custo_pack" | "descricao">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
@@ -256,9 +256,14 @@ export async function editarPedido(id: string, body: unknown): Promise<Pedido | 
         ? (it.modo === "pacote" ? produto.custo_pack : produto.custo_pack / produto.pack_quantidade) : null;
       const custo = antigo ? antigo.custo_unitario ?? null : custoAtual;
       const preco = Math.round(it.preco_unitario * 100) / 100;
+      // Itens existentes preservam a referência histórica, inclusive sem produto no catálogo.
+      const preco_original = Math.round((antigo ? antigo.preco_original ?? antigo.preco_unitario
+        : produto ? (it.modo === "pacote" ? produto.preco_pack : produto.preco_pack / produto.pack_quantidade) : preco) * 100) / 100;
       return { id: antigo?.id ?? randomUUID(), produto_id: it.produto_id, produto_nome: it.produto_nome.trim(),
         modo: it.modo, pack_quantidade: it.modo === "pacote" ? it.pack_quantidade : undefined,
-        quantidade: it.quantidade, preco_unitario: preco, custo_unitario: custo, subtotal: Math.round(preco * it.quantidade * 100) / 100 };
+        quantidade: it.quantidade, preco_unitario: preco, preco_original,
+        desconto_unitario: Math.max(0, Math.round((preco_original - preco) * 100)) / 100,
+        custo_unitario: custo, subtotal: Math.round(preco * it.quantidade * 100) / 100 };
     });
     const total = itens.reduce((s, it) => s + Math.round(it.subtotal * 100), 0) / 100;
     const patch = { cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
@@ -291,7 +296,8 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     const custo_unitario = typeof custo === "number" && Number.isFinite(custo) && custo > 0
       ? (it.modo === "pacote" ? custo : custo / (produto?.pack_quantidade || 1)) : null;
     const quantidade = Math.max(1, Number(it.quantidade) || 1);
-    const preco_unitario = Number(it.preco_unitario) || 0;
+    const preco_unitario = Math.round((Number(it.preco_unitario) || 0) * 100) / 100;
+    const preco_original = Math.round((produto ? (it.modo === "pacote" ? produto.preco_pack : produto.preco_pack / produto.pack_quantidade) : preco_unitario) * 100) / 100;
     return {
       id: randomUUID(),
       produto_id: it.produto_id,
@@ -303,6 +309,8 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
           : undefined,
       quantidade,
       preco_unitario,
+      preco_original,
+      desconto_unitario: Math.max(0, Math.round((preco_original - preco_unitario) * 100)) / 100,
       custo_unitario,
       subtotal: Math.round(preco_unitario * quantidade * 100) / 100,
     };

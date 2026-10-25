@@ -7,7 +7,7 @@ import { formatBRL } from "@/lib/format";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import type { Produto } from "@/lib/types";
 
-export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | "custo_pack">[] }) {
+export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | "custo_pack" | "preco_pack">[] }) {
   const {
     itens,
     totalValor,
@@ -65,6 +65,8 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
       <div className="flex flex-col gap-2">
         {itens.map((item) => {
           const subtotal = item.preco_unitario * item.quantidade;
+          const original = produtos.find(p => p.id === item.produto_id)?.preco_pack ?? item.preco_original ?? item.preco_unitario;
+          const desconto = Math.max(0, Math.round((original - item.preco_unitario) * 100)) / 100;
           return (
             <SalvarProduto key={item.produto_id} item={item}>
             <div
@@ -113,7 +115,7 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1">
                   <span className="text-xs font-medium text-slate-500">
-                    Preço por pacote
+                    Valor da venda por pacote
                   </span>
                   <div className="flex items-center rounded-xl border border-slate-200 focus-within:border-amber-500">
                     <span className="pl-3 text-sm text-slate-400">R$</span>
@@ -153,6 +155,11 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
                 </label>
               </div>
 
+              <div className="rounded-xl bg-emerald-50 p-3 text-sm">
+                <p className="text-slate-600">Valor original: {formatBRL(original)} por pacote</p>
+                <p className="font-medium text-emerald-800">Desconto por pacote: {formatBRL(desconto)}</p>
+                <p className="text-xs text-emerald-800">{desconto > 0 ? `Com desconto: ${formatBRL(item.preco_unitario)} · Economia total: ${formatBRL(desconto * item.quantidade)}` : "Reduza o valor da venda para aplicar um desconto somente neste orçamento."}</p>
+              </div>
               <RentabilidadeProduto venda={item.preco_unitario} custo={produtos.find(p => p.id === item.produto_id)?.custo_pack} />
               <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
                 <div className="flex flex-col gap-1">

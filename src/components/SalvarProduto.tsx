@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CartItem } from "@/lib/types";
 
 function dados(item: CartItem) {
-  return JSON.stringify({ nome: item.nome.trim(), preco_pack: item.preco_unitario, pack_quantidade: item.pack_quantidade });
+  return JSON.stringify({ nome: item.nome.trim(), pack_quantidade: item.pack_quantidade });
 }
 
 export function SalvarProduto({ item, children }: { item: CartItem; children: ReactNode }) {
@@ -27,7 +27,7 @@ export function SalvarProduto({ item, children }: { item: CartItem; children: Re
     fila.current = fila.current.then(async () => {
       try {
         const res = await fetch(`/api/produtos/${encodeURIComponent(item.produto_id)}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" }, body,
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body,
         });
         const resposta = await res.json();
         if (!res.ok) throw new Error(resposta.error || "Não foi possível salvar.");
@@ -48,7 +48,7 @@ export function SalvarProduto({ item, children }: { item: CartItem; children: Re
   return <div onBlur={(event) => { if (event.target.tagName === "INPUT") salvar(); }}>
     {children}
     <div className="px-2 py-2 text-xs" aria-live="polite">
-      <span className={erro ? "text-red-600" : "text-slate-500"}>{mensagem || "Nome, preço e itens por pacote atualizam o catálogo ao sair do campo."}</span>
+      <span className={erro ? "text-red-600" : "text-slate-500"}>{mensagem || "Nome e itens por pacote atualizam o catálogo. O preço negociado vale apenas para esta venda."}</span>
       {erro && <button type="button" onClick={salvar} className="ml-2 font-semibold underline">Tentar salvar novamente</button>}
     </div>
   </div>;
