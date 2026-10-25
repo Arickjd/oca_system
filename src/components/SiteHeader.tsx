@@ -16,14 +16,14 @@ export function SiteHeader({ usuario }: { usuario: string }) {
           <img
             src="/logo.png"
             alt="OCA Distribuidora"
-            className="h-7 w-auto max-w-10 object-contain sm:h-9 sm:max-w-none"
+            className="h-8 w-auto max-w-12 object-contain sm:h-9 sm:max-w-none"
           />
         </Link>
 
         <nav aria-label="Navegação principal" className="flex items-center justify-center gap-0.5 rounded-xl bg-slate-100 p-1">
           {[{ href: "/orcamentos", nome: "Orçamentos" }, { href: "/vendas", nome: "Vendas" }, { href: "/relatorios", nome: "Relatórios" }].map(link => {
             const ativo = pathname === link.href || (link.href === "/orcamentos" && pathname.startsWith("/orcamento/"));
-            return <Link key={link.href} href={link.href} aria-current={ativo ? "page" : undefined} className={`rounded-lg px-1.5 py-2.5 text-[11px] font-semibold sm:px-3 sm:text-sm ${ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{link.nome}</Link>;
+            return <Link key={link.href} href={link.href} aria-current={ativo ? "page" : undefined} className={`rounded-lg px-1 py-2.5 text-xs font-semibold sm:px-3 sm:text-sm ${ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{link.nome}</Link>;
           })}
         </nav>
         <Link
@@ -53,7 +53,7 @@ export function SiteHeader({ usuario }: { usuario: string }) {
           )}
         </Link>
       </div>
-      <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-3 pb-2 text-xs text-slate-500">
+      <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-3 pb-2 text-[13px] text-slate-500 sm:text-xs">
         <span>Usuário: <strong className="font-medium text-slate-700">{usuario}</strong></span>
         <form action="/api/auth/logout" method="post"><button className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100">Sair</button></form>
       </div>
