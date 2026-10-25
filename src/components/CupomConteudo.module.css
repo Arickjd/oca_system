@@ -1,0 +1,50 @@
+.pagina {
+  min-height: 100dvh;
+  background: #f1f5f9;
+  padding: 16px 12px 32px;
+}
+
+.cupom {
+  box-sizing: border-box;
+  width: 80mm;
+  max-width: 100%;
+  margin: 20px auto 0;
+  padding: 3mm;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 3px 16px #0f172a15;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.cupom p { margin: 0; }
+.cupom h1, .cupom h2 { font-weight: 700; }
+.cupom h1 { margin: 8px 0 0; font-size: 13px; }
+.cupom h2 { margin: 0 0 5px; font-size: 11px; }
+.cabecalho { text-align: center; break-inside: avoid; }
+.logo { display: block; width: 36mm; max-width: 100%; height: auto; margin: 0 auto 5px; filter: grayscale(1); }
+.empresa { font-weight: 700; }
+.secao, .totais, .rodape { margin-top: 8px; border-top: 1px dashed #000; padding-top: 8px; }
+.itens { margin: 0; padding: 0; list-style: none; }
+.item { padding: 7px 0; border-bottom: 1px dotted #999; break-inside: avoid; }
+.item:last-child { border-bottom: none; padding-bottom: 0; }
+.nome { font-weight: 700; }
+.linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.linha > :last-child { flex-shrink: 0; text-align: right; }
+.total { font-size: 14px; margin: 4px 0; }
+.totais { break-inside: avoid; }
+.observacao { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #000; white-space: pre-wrap; }
+.rodape { text-align: center; break-inside: avoid; }
+
+@page cupom80 {
+  size: 80mm 297mm;
+  margin: 0;
+}
+
+@media print {
+  .pagina { page: cupom80; min-height: 0; padding: 0; background: #fff; }
+  .cupom { width: 80mm; max-width: none; margin: 0; box-shadow: none; }
+}

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 const base = process.argv[2] || "http://localhost:3015";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Error("Use somente uma prévia local.");
 const request = (url, options = {}) => fetch(base + url, { redirect: "manual", ...options });
-const paginas = ["/home", "/categorias", "/produtos", "/carrinho", "/checkout", "/gerenciar-produtos", "/orcamentos", "/vendas", "/relatorios", "/orcamento/inexistente", "/orcamento/inexistente/editar"];
+const paginas = ["/home", "/categorias", "/produtos", "/carrinho", "/checkout", "/gerenciar-produtos", "/orcamentos", "/vendas", "/relatorios", "/orcamento/inexistente", "/orcamento/inexistente/editar", "/orcamento/inexistente/cupom"];
 for (const pagina of paginas) {
   const res = await request(pagina);
   assert.equal(res.status, 307, pagina);

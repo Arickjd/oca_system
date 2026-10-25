@@ -53,7 +53,7 @@ export function ReciboAcoes({ pedidoId, numero, shareTitle }: { pedidoId: string
   const btn = "flex-1 min-w-[130px] inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50";
   return <div className="no-print flex flex-col gap-2">
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => window.print()} className={btn + " bg-slate-900 text-white"}>Imprimir</button>
+      <Link href={`/orcamento/${encodeURIComponent(pedidoId)}/cupom`} className={btn + " bg-slate-900 text-white"}>Imprimir cupom</Link>
       <button type="button" disabled={!arquivo} onClick={baixar} className={btn + " bg-white border border-slate-200"}>{carregando ? "Preparando PDF…" : "Baixar PDF"}</button>
       <button type="button" disabled={!arquivo || compartilhando} onClick={compartilhar} className={btn + " bg-emerald-600 text-white"}>{compartilhando ? "Compartilhando…" : "Enviar PDF pelo WhatsApp"}</button>
       <Link href="/" className={btn + " bg-white border border-slate-200"}>Novo pedido</Link>

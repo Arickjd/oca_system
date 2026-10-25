@@ -80,6 +80,8 @@ exigem migração do banco.
 
 ## Histórico, relatórios e edição de orçamentos
 
+- Na consulta individual, **Imprimir cupom** abre `/orcamento/[id]/cupom`, com prévia para bobina de 80 mm. A altura de impressão acompanha o conteúdo. Selecione a impressora e o papel de 80 mm, escala 100%, sem cabeçalho/rodapé do navegador. O documento é não fiscal, inclui descontos e pagamento e não exibe custo ou lucro. O download e compartilhamento do PDF A4 continuam disponíveis na consulta principal.
+
 - Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.
 - A exportação inclui registros excluídos logicamente, custos e responsáveis. IDs preservam os vínculos entre abas. A leitura PostgreSQL usa uma única instrução para manter consistência entre registros e contadores; no modo local, aguarda as escritas pendentes.
 - Os registros brutos preservam campos adicionais e JSON extenso em partes numeradas. Os contadores são texto para preservar precisão. As datas visíveis usam Brasília e o JSON preserva os timestamps originais. A exportação exige login e não inclui variáveis de ambiente ou credenciais externas ao banco. Não há restauração/importação automática por esse botão.
