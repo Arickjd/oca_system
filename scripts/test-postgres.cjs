@@ -139,6 +139,12 @@ async function main() {
     assert.equal(disputas.filter(Boolean).length, 1);
     await api.finalizarPagamento(protegido.id, "pix", 1);
     assert.equal(await store.editarPedidoPendente(protegido.id, { revisao: 2 }, 1), undefined);
+    const chaveLogin = "auth-tentativas:teste";
+    const tentativasLogin = await Promise.all(Array.from({ length: 12 }, () => store.registrarTentativaLogin(chaveLogin, 1000, 900000, 10)));
+    assert.equal(tentativasLogin.filter(t => t.permitido).length, 10);
+    assert.equal((await store.registrarTentativaLogin(chaveLogin, 902000, 900000, 10)).permitido, true);
+    await store.limparTentativasLogin(chaveLogin);
+    assert.equal(await store.buscar("config", chaveLogin), undefined);
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

@@ -27,6 +27,7 @@ const { gerarRelatorioOrcamentos } = load("src/lib/relatorioOrcamentosPdf.ts");
 const pedidos = Array.from({ length: 8 }, (_, i) => ({ id: String(i), numero: 101 + i,
   cliente_nome: i === 0 ? "João da Conceição - Comércio de embalagens e descartáveis" : `Cliente ${i + 1}`,
   telefone: "", observacao: "", created_at: "2026-10-22T15:30:00Z", status: "novo",
+  criado_por: { id: "jardel", nome: "Jardel" },
   status_pagamento: i % 2 ? "finalizado" : "pendente", forma_pagamento: i % 2 ? ["pix", "cartao", "dinheiro"][i % 3] : undefined,
   itens: Array.from({ length: i === 0 ? 22 : 4 }, (_, j) => ({ id: `${i}-${j}`, produto_id: String(j), produto_nome: `Produto ${j + 1} - Copo descartável resistente com descrição para teste de quebra de linha`, modo: "pacote", pack_quantidade: 100, quantidade: 2, preco_unitario: 10.1, preco_original: j % 2 ? 10.1 : 12.5, desconto_unitario: j % 2 ? 0 : 2.4, subtotal: 20.2 })),
   valor_total: (i === 0 ? 22 : 4) * 20.2,

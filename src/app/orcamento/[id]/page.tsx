@@ -8,12 +8,14 @@ import {
 } from "@/lib/format";
 import { ReciboAcoes } from "@/components/ReciboAcoes";
 import { PagamentoOrcamento } from "@/components/PagamentoOrcamento";
+import { exigirSessao } from "@/lib/auth-servidor";
 
 export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
 export default async function OrcamentoPage({ params }: Params) {
+  await exigirSessao();
   const { id } = await params;
   const [pedido, config] = await Promise.all([getPedido(id), getConfig()]);
   if (!pedido) notFound();
@@ -85,6 +87,7 @@ export default async function OrcamentoPage({ params }: Params) {
           )}
 
           {/* Itens */}
+          {pedido.criado_por && <p className="pt-4 text-sm text-slate-500">Responsável: <span className="font-medium text-slate-700">{pedido.criado_por.nome}</span></p>}
           <section className="py-5">
             <table className="w-full table-fixed text-xs sm:text-sm border-collapse break-words">
               <thead>

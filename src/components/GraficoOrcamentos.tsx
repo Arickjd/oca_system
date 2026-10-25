@@ -9,20 +9,22 @@ export function GraficoOrcamentos({ pedidos, periodo }: { pedidos: Pedido[]; per
     <h2 className="font-semibold text-slate-900">Orçamentos e vendas por dia</h2>
     <p className="mt-1 text-sm text-slate-500">Quantidade por data de criação, conforme a situação atual do pagamento.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-amber-400" />Orçamentos pendentes</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-emerald-600" />Vendas finalizadas</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-amber-200 bg-amber-50" />Orçamentos pendentes</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-emerald-200 bg-emerald-50" />Vendas finalizadas</span>
     </div>
     {!pedidos.length ? <p className="py-10 text-center text-sm text-slate-500">Nenhum registro no período selecionado.</p> : <>
-      <div className="mt-5 overflow-x-auto pb-2" tabIndex={0} role="region" aria-label="Gráfico diário. Role horizontalmente para visualizar mais dias.">
-        <div aria-hidden="true" className="flex min-w-full items-end border-b border-slate-200">
-          {dias.map(d => <div key={d.dia} className="min-w-16 flex-1 px-2">
-            <div className="flex h-40 items-end justify-center gap-1.5">
-              {[{ valor: d.pendentes, cor: "bg-amber-400" }, { valor: d.vendas, cor: "bg-emerald-600" }].map((barra, i) => <div key={i} className="flex h-full w-5 flex-col justify-end">
-                <span className="mb-1 text-center text-xs font-semibold text-slate-600">{barra.valor}</span>
-                <div title={`${dataCurta(d.dia)} · ${barra.valor} ${i === 0 ? "pendentes" : "vendas"}`} style={{ height: barra.valor ? `${barra.valor / maior * 128}px` : "2px" }} className={`rounded-t ${barra.valor ? barra.cor : "bg-slate-200"}`} />
+      <div className="mt-5" role="region" aria-label="Gráfico diário de orçamentos pendentes e vendas finalizadas">
+        <div aria-hidden="true" className="flex min-w-0 flex-col gap-3">
+          {dias.map(d => <div key={d.dia} className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-center gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0 sm:grid-cols-[5rem_minmax(0,1fr)]">
+            <time dateTime={d.dia} className="text-[11px] font-medium tabular-nums text-slate-500 sm:text-xs">{dataCurta(d.dia)}</time>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              {[{ valor: d.pendentes, cor: "border border-amber-200 bg-amber-50" }, { valor: d.vendas, cor: "border border-emerald-200 bg-emerald-50" }].map((barra, i) => <div key={i} className="grid min-w-0 grid-cols-[minmax(0,1fr)_2rem] items-center gap-2" title={`${dataCurta(d.dia)} · ${barra.valor} ${i === 0 ? "pendentes" : "vendas"}`}>
+                <div className="h-4 min-w-0 rounded bg-slate-50">
+                  <div style={{ width: barra.valor ? `${barra.valor / maior * 100}%` : "2px" }} className={`h-full rounded ${barra.valor ? barra.cor : "bg-slate-200"}`} />
+                </div>
+                <span className="text-right text-xs font-semibold tabular-nums text-slate-600">{barra.valor}</span>
               </div>)}
             </div>
-            <p className="py-3 text-center text-[11px] text-slate-500">{dataCurta(d.dia).slice(0, 5)}</p>
           </div>)}
         </div>
       </div>

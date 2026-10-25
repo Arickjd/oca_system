@@ -1,3 +1,4 @@
+import { verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextResponse } from "next/server";
 import { getCategorias, criarCategoria } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -5,6 +6,7 @@ import { revalidatePath } from "next/cache";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   let nome: string;
   try {
     const body = await req.json();
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const cats = await getCategorias();
   return NextResponse.json(cats);
 }

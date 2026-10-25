@@ -1,3 +1,4 @@
+import { verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getPedidos } from "@/lib/db";
 import { getConfig } from "@/lib/config";
@@ -8,6 +9,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const negado = await verificarAcessoApi(); if (negado) return negado;
   const query = req.nextUrl.searchParams;
   const tipo = query.get("tipo");
   if (tipo !== "resumido" && tipo !== "detalhado") return NextResponse.json({ error: "Tipo de relatório inválido." }, { status: 400 });

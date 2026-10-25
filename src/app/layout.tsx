@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
+import { obterSessao } from "@/lib/auth-servidor";
 
 export const metadata: Metadata = {
   title: "Sistema OCA",
@@ -20,15 +21,16 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const sessao = await obterSessao();
   return (
     <html lang="pt-BR">
       <body className="antialiased">
-        <CartProvider>{children}</CartProvider>
+        <CartProvider key={sessao?.usuario.id ?? "visitante"} usuarioId={sessao?.usuario.id ?? null}>{children}</CartProvider>
       </body>
     </html>
   );

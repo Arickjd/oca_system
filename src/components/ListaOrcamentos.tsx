@@ -23,6 +23,7 @@ export function ListaOrcamentos({ pedidos, retorno, vendas = false }: { pedidos:
           <p className={`mt-1 text-xs ${pedido.lucro_bruto == null ? "text-slate-500" : pedido.lucro_bruto < 0 ? "text-red-700" : "text-emerald-700"}`}>Lucro bruto: {pedido.lucro_bruto == null ? "---" : formatBRL(pedido.lucro_bruto)}</p>
         </div></div>
         <span className="break-words">{pedido.cliente_nome || "Cliente não informado"}</span>
+        <span className="text-xs text-slate-500">Criado por: {pedido.criado_por?.nome || "Não informado"}</span>
         <span className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${vendas ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
           {vendas ? `Finalizado${pedido.forma_pagamento ? ` · ${formasPagamento[pedido.forma_pagamento]}` : ""}` : "Pagamento pendente"}
         </span>

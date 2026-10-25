@@ -18,10 +18,12 @@
     "test:postgres": "node scripts/test-postgres.cjs",
     "test:custos": "node scripts/test-custos.cjs",
     "test:orcamentos": "node scripts/test-orcamentos.cjs",
-    "test:historico": "node scripts/test-historico.cjs"
+    "test:historico": "node scripts/test-historico.cjs",
+    "test:auth": "node scripts/test-auth.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
+    "jose": "^6.2.13",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
     "next": "^15.5.28",

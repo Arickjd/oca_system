@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 
-export function SiteHeader() {
+export function SiteHeader({ usuario }: { usuario: string }) {
   const { totalItens } = useCart();
   const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
       <div className="max-w-3xl mx-auto px-2 sm:px-3 h-16 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-2">
-        <Link href="/" aria-label="Ir para a página inicial" className="min-w-0 justify-self-start">
+        <Link href="/home" aria-label="Ir para a página inicial" className="min-w-0 justify-self-start">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
@@ -52,6 +52,10 @@ export function SiteHeader() {
             </span>
           )}
         </Link>
+      </div>
+      <div className="mx-auto flex max-w-3xl items-center justify-end gap-3 px-3 pb-2 text-xs text-slate-500">
+        <span>Usuário: <strong className="font-medium text-slate-700">{usuario}</strong></span>
+        <form action="/api/auth/logout" method="post"><button className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100">Sair</button></form>
       </div>
     </header>
   );

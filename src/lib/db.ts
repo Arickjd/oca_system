@@ -205,6 +205,7 @@ export interface NovoPedido {
   cliente_nome?: string;
   telefone?: string;
   observacao?: string;
+  criado_por?: { id: string; nome: string };
   itens: NovoItem[];
 }
 
@@ -325,6 +326,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
     cliente_nome: (input.cliente_nome ?? "").trim(),
     telefone: (input.telefone ?? "").trim(),
     observacao: (input.observacao ?? "").trim(),
+    criado_por: input.criado_por,
     itens,
     valor_total,
     lucro_bruto: itens.length > 0 && itens.every(it => it.custo_unitario != null)

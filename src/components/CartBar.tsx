@@ -17,6 +17,8 @@ export function CartBar() {
     pathname?.startsWith("/orcamentos") ||
     pathname?.startsWith("/vendas") ||
     pathname?.startsWith("/relatorios") ||
+    pathname === "/home" ||
+    pathname === "/" ||
     pathname?.startsWith("/orcamento/") ||
     totalItens === 0;
 

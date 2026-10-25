@@ -14,6 +14,25 @@ function sql() {
   return neon(process.env.DATABASE_URL);
 }
 
+// A coleção config já existe; as tentativas usam IDs próprios, sem afetar a configuração principal.
+export async function registrarTentativaLogin(chave: string, agora: number, janela: number, limite: number) {
+  const rows = await sql().query(`
+    INSERT INTO oca_registros (colecao, id, dados)
+    VALUES ('config', $1, jsonb_build_object('quantidade', 1, 'ate', $2::bigint + $3::bigint))
+    ON CONFLICT (colecao, id) DO UPDATE SET dados = CASE
+      WHEN (oca_registros.dados->>'ate')::bigint <= $2::bigint
+        THEN jsonb_build_object('quantidade', 1, 'ate', $2::bigint + $3::bigint)
+      ELSE jsonb_build_object('quantidade', (oca_registros.dados->>'quantidade')::integer + 1, 'ate', (oca_registros.dados->>'ate')::bigint)
+    END RETURNING dados
+  `, [chave, agora, janela]);
+  const dados = rows[0].dados as { quantidade: number; ate: number };
+  return { permitido: dados.quantidade <= limite, espera: Math.max(1, Math.ceil((dados.ate - agora) / 1000)), chave };
+}
+
+export async function limparTentativasLogin(chave: string) {
+  await sql().query("DELETE FROM oca_registros WHERE colecao = 'config' AND id = $1 AND id LIKE 'auth-tentativas:%'", [chave]);
+}
+
 export async function listar<T>(colecao: string): Promise<T[]> {
   const rows = await sql().query("SELECT dados FROM oca_registros WHERE colecao = $1", [colecao]);
   return rows.map(row => row.dados as T);

@@ -32,7 +32,7 @@ export function gerarRelatorioOrcamentos(pedidos: Pedido[], periodo: Periodo, ti
       rowPageBreak: "avoid",
       startY: y, margin: { left: 15, right: 15, top: 18, bottom: 22 },
       head: [["Nº", "Orçamento / Data", "Cliente", "Situação", "Pagamento", "Valor"]],
-      body: pedidos.map((p, index) => [String(index + 1), `#${p.numero}\n${formatData(p.created_at)}`, p.cliente_nome || "Cliente não informado", status(p), pagamento(p), formatBRL(p.valor_total)]),
+      body: pedidos.map((p, index) => [String(index + 1), `#${p.numero}\n${formatData(p.created_at)}`, (p.cliente_nome || "Cliente não informado") + (p.criado_por ? `\nResponsável: ${p.criado_por.nome}` : ""), status(p), pagamento(p), formatBRL(p.valor_total)]),
       styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak" },
       headStyles: { fillColor: [15, 23, 42] },
       columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 33 }, 2: { cellWidth: 47 }, 3: { cellWidth: 28 }, 4: { cellWidth: 27 }, 5: { cellWidth: 33, halign: "right" } },
@@ -44,6 +44,7 @@ export function gerarRelatorioOrcamentos(pedidos: Pedido[], periodo: Periodo, ti
       const alturaTitulo = doc.splitTextToSize(titulo, 180).length * 6;
       if (y + alturaTitulo + 35 > 270) { doc.addPage(); y = 20; }
       texto(titulo, 11, true);
+      if (p.criado_por) texto(`Responsável: ${p.criado_por.nome}`, 9);
       texto(`${formatData(p.created_at)} | ${status(p)} | ${pagamento(p)} | Total: ${formatBRL(p.valor_total)}`, 9);
       autoTable(doc, {
         rowPageBreak: "avoid",

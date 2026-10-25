@@ -26,6 +26,7 @@ export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Arr
   };
   if (pedido.cliente_nome) texto("Cliente: " + pedido.cliente_nome);
   if (pedido.telefone) texto("Telefone: " + pedido.telefone);
+  if (pedido.criado_por) texto("Responsável: " + pedido.criado_por.nome);
   autoTable(doc, {
     rowPageBreak: "avoid",
     startY: y + 3, margin: { left: margin, right: margin, top: 18, bottom: 24 },

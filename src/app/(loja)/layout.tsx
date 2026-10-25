@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { CartBar } from "@/components/CartBar";
 import { getConfig } from "@/lib/config";
+import { exigirSessao } from "@/lib/auth-servidor";
 
 // O rodapé lê o banco: carrinho e checkout também precisam renderizar por requisição.
 // Não consultar tabelas durante o build, antes da migração inicial.
@@ -11,10 +12,11 @@ export default async function LojaLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { usuario } = await exigirSessao();
   const config = await getConfig();
   return (
     <div className="min-h-dvh flex flex-col">
-      <SiteHeader />
+      <SiteHeader usuario={usuario.nome} />
       <main className="flex-1 w-full max-w-3xl mx-auto px-3 py-4">
         {children}
       </main>
