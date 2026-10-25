@@ -67,6 +67,11 @@ async function main() {
     await assert.rejects(() => db.finalizarPagamento(comCusto.id, "boleto"));
     await require("./test-edicao.cjs")(db);
     await require("./test-descontos.cjs")(db);
+    const snapshotBanco = await db.lerBancoCompleto();
+    assert.equal(snapshotBanco.origem, "local");
+    assert.ok(snapshotBanco.registros.some(r => r.colecao === "pedidos" && r.dados.excluido_em));
+    assert.ok(snapshotBanco.registros.some(r => r.colecao === "produtos" && r.dados.excluido_em));
+    assert.equal(snapshotBanco.contadores[0].valor, String(Math.max(...snapshotBanco.registros.filter(r => r.colecao === "pedidos").map(r => r.dados.numero))));
     await fs.writeFile("data/pedidos.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
     assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");

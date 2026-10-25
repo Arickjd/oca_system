@@ -80,6 +80,11 @@ exigem migração do banco.
 
 ## Histórico, relatórios e edição de orçamentos
 
+- Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.
+- A exportação inclui registros excluídos logicamente, custos e responsáveis. IDs preservam os vínculos entre abas. A leitura PostgreSQL usa uma única instrução para manter consistência entre registros e contadores; no modo local, aguarda as escritas pendentes.
+- Os registros brutos preservam campos adicionais e JSON extenso em partes numeradas. Os contadores são texto para preservar precisão. As datas visíveis usam Brasília e o JSON preserva os timestamps originais. A exportação exige login e não inclui variáveis de ambiente ou credenciais externas ao banco. Não há restauração/importação automática por esse botão.
+- `npm run test:exportacao` confere o arquivo gerado com dados fictícios. Nenhuma migração de banco é necessária.
+
 - `/orcamentos` mostra somente pagamentos pendentes, com Hoje e seleção de outros dias com pendências e respectivas quantidades.
 - `/vendas` mostra somente pagamentos finalizados, com Hoje, Últimos 7 dias e intervalo personalizado.
 - `/relatorios` concentra indicadores, gráfico diário de quantidades e geração dos PDFs. Pendentes aparecem em âmbar; vendas finalizadas em verde. Os valores e o gráfico usam o mesmo filtro dos PDFs.

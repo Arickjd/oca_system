@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import type { Pedido } from "./types";
+import type { SnapshotBanco } from "./snapshotBanco";
 
 export function usarPostgres() {
   if (process.env.DATABASE_URL) return true;
@@ -36,6 +37,16 @@ export async function limparTentativasLogin(chave: string) {
 export async function listar<T>(colecao: string): Promise<T[]> {
   const rows = await sql().query("SELECT dados FROM oca_registros WHERE colecao = $1", [colecao]);
   return rows.map(row => row.dados as T);
+}
+
+export async function lerBancoCompleto(): Promise<SnapshotBanco> {
+  // Uma única instrução lê as duas tabelas na mesma visão consistente do banco.
+  const rows = await sql().query(`SELECT jsonb_build_object(
+    'registros', (SELECT COALESCE(jsonb_agg(jsonb_build_object('colecao', colecao, 'id', id, 'dados', dados) ORDER BY colecao, id), '[]'::jsonb) FROM oca_registros),
+    'contadores', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', id, 'valor', valor::text) ORDER BY id), '[]'::jsonb) FROM oca_contadores),
+    'gerado_em', CURRENT_TIMESTAMP, 'origem', 'postgres'
+  ) AS snapshot`, []);
+  return rows[0].snapshot as SnapshotBanco;
 }
 
 export async function buscar<T>(colecao: string, id: string): Promise<T | undefined> {

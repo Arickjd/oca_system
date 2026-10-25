@@ -145,6 +145,13 @@ async function main() {
     assert.equal((await store.registrarTentativaLogin(chaveLogin, 902000, 900000, 10)).permitido, true);
     await store.limparTentativasLogin(chaveLogin);
     assert.equal(await store.buscar("config", chaveLogin), undefined);
+    const snapshotBanco = await api.lerBancoCompleto();
+    assert.equal(snapshotBanco.origem, "postgres");
+    assert.ok(Number.isFinite(Date.parse(snapshotBanco.gerado_em)));
+    assert.ok(snapshotBanco.registros.some(r => r.colecao === "pedidos" && r.dados.excluido_em));
+    assert.ok(snapshotBanco.registros.some(r => r.colecao === "produtos" && r.dados.excluido_em));
+    assert.equal(snapshotBanco.registros.length, (await db.query("SELECT COUNT(*)::integer AS n FROM oca_registros")).rows[0].n);
+    assert.ok(snapshotBanco.contadores.some(c => c.id === "pedidos" && typeof c.valor === "string"));
     const vercel = process.env.VERCEL;
     try {
       delete process.env.DATABASE_URL; process.env.VERCEL = "1";

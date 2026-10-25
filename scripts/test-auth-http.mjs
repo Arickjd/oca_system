@@ -10,7 +10,7 @@ for (const pagina of paginas) {
   assert.equal(res.status, 307, pagina);
   assert.equal(new URL(res.headers.get("location"), base).pathname, "/");
 }
-const apis = ["/api/config", "/api/categorias", "/api/produtos", "/api/produtos/inexistente", "/api/pedidos", "/api/pedidos/inexistente", "/api/pedidos/inexistente/pdf", "/api/orcamentos/relatorio?tipo=resumido"];
+const apis = ["/api/config", "/api/categorias", "/api/produtos", "/api/produtos/inexistente", "/api/pedidos", "/api/pedidos/inexistente", "/api/pedidos/inexistente/pdf", "/api/orcamentos/relatorio?tipo=resumido", "/api/banco/exportar"];
 for (const api of apis) assert.equal((await request(api)).status, 401, api);
 for (const [url, method] of [["/api/produtos", "POST"], ["/api/categorias", "POST"], ["/api/produtos/inexistente", "PUT"], ["/api/pedidos", "POST"], ["/api/pedidos/inexistente", "PUT"], ["/api/pedidos/inexistente", "PATCH"], ["/api/pedidos/inexistente", "DELETE"]]) {
   assert.equal((await request(url, { method })).status, 401);
@@ -28,6 +28,13 @@ for (const [usuario, nome] of [["jardel", "Jardel"], ["jairo", "Jairo"], ["gisel
   assert.equal(home.status, 200);
   assert.ok((await home.text()).includes(nome));
   assert.equal((await request("/api/produtos", { headers: { Cookie: header } })).status, 200);
+  if (usuario === "jardel") {
+    const exportacao = await request("/api/banco/exportar", { headers: { Cookie: header } });
+    assert.equal(exportacao.status, 200);
+    assert.match(exportacao.headers.get("content-type"), /spreadsheetml/);
+    assert.match(exportacao.headers.get("cache-control"), /no-store/);
+    assert.equal(Buffer.from(await exportacao.arrayBuffer()).subarray(0, 2).toString(), "PK");
+  }
   assert.equal((await request("/api/produtos", { headers: { Cookie: header + "adulterado" } })).status, 401);
   const crossSite = await request("/api/pedidos", { method: "POST", headers: { Cookie: header, Origin: "https://externo.com" } });
   assert.equal(crossSite.status, 403);
