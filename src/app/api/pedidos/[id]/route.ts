@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPedido, excluirPedido, finalizarPagamento, editarPedido, EdicaoInvalida } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { revalidarHistorico } from "@/lib/revalidarHistorico";
 import type { FormaPagamento } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
@@ -10,7 +11,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const pedido = await editarPedido(id, await req.json().catch(() => null));
     if (!pedido) return NextResponse.json({ error: "O orçamento foi alterado, efetivado ou excluído. Recarregue a página antes de continuar." }, { status: 409 });
-    revalidatePath("/orcamentos");
+    revalidarHistorico();
     revalidatePath(`/orcamento/${id}`);
     revalidatePath(`/orcamento/${id}/editar`);
     return NextResponse.json({ id: pedido.id });
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       const existe = await getPedido(id);
       return NextResponse.json({ error: existe ? "Este orçamento foi alterado ou já foi finalizado. Atualize a página e confira o valor." : "Orçamento não encontrado." }, { status: existe ? 409 : 404 });
     }
-    revalidatePath("/orcamentos");
+    revalidarHistorico();
     revalidatePath(`/orcamento/${id}`);
     return NextResponse.json({ status_pagamento: pedido.status_pagamento, forma_pagamento: pedido.forma_pagamento });
   } catch {
@@ -46,6 +47,8 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (!await excluirPedido(id)) {
       return NextResponse.json({ error: "Orçamento não encontrado." }, { status: 404 });
     }
+    revalidarHistorico();
+    revalidatePath(`/orcamento/${id}`);
     return new NextResponse(null, { status: 204 });
   } catch {
     return NextResponse.json({ error: "Não foi possível excluir o orçamento. Tente novamente." }, { status: 500 });

@@ -29,12 +29,13 @@ export function gerarRelatorioOrcamentos(pedidos: Pedido[], periodo: Periodo, ti
   if (!pedidos.length) texto("Nenhum orçamento encontrado neste período.");
   if (tipo === "resumido" && pedidos.length) {
     autoTable(doc, {
+      rowPageBreak: "avoid",
       startY: y, margin: { left: 15, right: 15, top: 18, bottom: 22 },
-      head: [["Nº / Data", "Cliente", "Situação", "Pagamento", "Valor"]],
-      body: pedidos.map(p => [`#${p.numero}\n${formatData(p.created_at)}`, p.cliente_nome || "Cliente não informado", status(p), pagamento(p), formatBRL(p.valor_total)]),
+      head: [["Nº", "Orçamento / Data", "Cliente", "Situação", "Pagamento", "Valor"]],
+      body: pedidos.map((p, index) => [String(index + 1), `#${p.numero}\n${formatData(p.created_at)}`, p.cliente_nome || "Cliente não informado", status(p), pagamento(p), formatBRL(p.valor_total)]),
       styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak" },
       headStyles: { fillColor: [15, 23, 42] },
-      columnStyles: { 0: { cellWidth: 33 }, 1: { cellWidth: 59 }, 2: { cellWidth: 28 }, 3: { cellWidth: 27 }, 4: { cellWidth: 33, halign: "right" } },
+      columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 33 }, 2: { cellWidth: 47 }, 3: { cellWidth: 28 }, 4: { cellWidth: 27 }, 5: { cellWidth: 33, halign: "right" } },
     });
   } else if (tipo === "detalhado") {
     for (const p of pedidos) {
@@ -45,12 +46,13 @@ export function gerarRelatorioOrcamentos(pedidos: Pedido[], periodo: Periodo, ti
       texto(titulo, 11, true);
       texto(`${formatData(p.created_at)} | ${status(p)} | ${pagamento(p)} | Total: ${formatBRL(p.valor_total)}`, 9);
       autoTable(doc, {
+        rowPageBreak: "avoid",
         startY: y + 2, margin: { left: 15, right: 15, top: 18, bottom: 22 },
-        head: [["Produto / apresentação", "Qtd", "Valor original", "Valor final", "Subtotal"]],
-        body: p.itens.map(it => [it.produto_nome + "\n" + (it.modo === "pacote" ? `Pacote com ${it.pack_quantidade ?? 1}` : "Unidade"), String(it.quantidade), formatBRL(it.preco_original ?? it.preco_unitario), formatBRL(it.preco_unitario) + ((it.desconto_unitario ?? 0) > 0 ? "\nCom desconto" : ""), formatBRL(it.subtotal)]),
+        head: [["Nº", "Produto / apresentação", "Qtd", "Valor original", "Valor final", "Subtotal"]],
+        body: p.itens.map((it, index) => [String(index + 1), it.produto_nome + "\n" + (it.modo === "pacote" ? `Pacote com ${it.pack_quantidade ?? 1}` : "Unidade"), String(it.quantidade), formatBRL(it.preco_original ?? it.preco_unitario), formatBRL(it.preco_unitario) + ((it.desconto_unitario ?? 0) > 0 ? "\nCom desconto" : ""), formatBRL(it.subtotal)]),
         styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak" },
         headStyles: { fillColor: [51, 65, 85] },
-        columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 14, halign: "center" }, 2: { cellWidth: 32, halign: "right" }, 3: { cellWidth: 32, halign: "right" }, 4: { cellWidth: 32, halign: "right" } },
+        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 58 }, 2: { cellWidth: 14, halign: "center" }, 3: { cellWidth: 32, halign: "right" }, 4: { cellWidth: 32, halign: "right" }, 5: { cellWidth: 32, halign: "right" } },
       });
       y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
     }

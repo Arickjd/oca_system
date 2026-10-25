@@ -24,7 +24,7 @@ export default async function OrcamentoPage({ params }: Params) {
       {/* Barra de ações (não imprime) */}
       <div className="no-print sticky top-0 z-20 bg-slate-100/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-[210mm] mx-auto px-3 py-3">
-          <Link href="/orcamentos" className="inline-block mb-3 text-sm underline">Todos os orçamentos</Link>
+          <Link href={pedido.status_pagamento === "finalizado" ? "/vendas" : "/orcamentos"} className="inline-block mb-3 text-sm underline">{pedido.status_pagamento === "finalizado" ? "Voltar às vendas" : "Voltar aos orçamentos"}</Link>
           <ReciboAcoes
             key={pedido.revisao ?? 0}
             pedidoId={pedido.id}
@@ -113,9 +113,11 @@ export default async function OrcamentoPage({ params }: Params) {
                       {it.quantidade}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      <span className="block text-xs text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
-                      <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario ?? 0)}</span>
-                      <span className="block font-medium text-emerald-800">Valor final: {formatBRL(it.preco_unitario)}</span>
+                      {(it.desconto_unitario ?? 0) > 0 ? <>
+                        <span className="block text-xs text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
+                        <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario ?? 0)}</span>
+                        <span className="block font-medium text-emerald-800">Valor final: {formatBRL(it.preco_unitario)}</span>
+                      </> : <span className="block font-medium text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>}
                     </td>
                     <td className="py-2 pl-2 text-right tabular-nums font-medium">
                       {formatBRL(it.subtotal)}

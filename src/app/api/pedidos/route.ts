@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPedidos, createPedido, type NovoItem } from "@/lib/db";
+import { revalidarHistorico } from "@/lib/revalidarHistorico";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
     itens,
   });
 
+  revalidarHistorico();
   return NextResponse.json(pedido, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Não foi possível registrar o orçamento. Tente novamente." }, { status: 500 });

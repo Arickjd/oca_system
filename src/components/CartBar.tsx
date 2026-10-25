@@ -15,6 +15,8 @@ export function CartBar() {
     pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/gerenciar-produtos") ||
     pathname?.startsWith("/orcamentos") ||
+    pathname?.startsWith("/vendas") ||
+    pathname?.startsWith("/relatorios") ||
     pathname?.startsWith("/orcamento/") ||
     totalItens === 0;
 
