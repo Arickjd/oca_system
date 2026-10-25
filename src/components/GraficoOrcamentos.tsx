@@ -9,15 +9,15 @@ export function GraficoOrcamentos({ pedidos, periodo }: { pedidos: Pedido[]; per
     <h2 className="font-semibold text-slate-900">Orçamentos e vendas por dia</h2>
     <p className="mt-1 text-sm text-slate-500">Quantidade por data de criação, conforme a situação atual do pagamento.</p>
     <div className="mt-4 flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-amber-200 bg-amber-50" />Orçamentos pendentes</span>
-      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-emerald-200 bg-emerald-50" />Vendas finalizadas</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-amber-400 bg-amber-300" />Orçamentos pendentes</span>
+      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded border border-emerald-400 bg-emerald-300" />Vendas finalizadas</span>
     </div>
     {!pedidos.length ? <p className="py-10 text-center text-sm text-slate-500">Nenhum registro no período selecionado.</p> : <>
       <div className="mt-5 overflow-x-auto pb-2" tabIndex={0} role="region" aria-label="Gráfico diário. Role horizontalmente para visualizar mais dias.">
         <div aria-hidden="true" className="flex min-w-full items-end border-b border-slate-200">
           {dias.map(d => <div key={d.dia} className="min-w-16 flex-1 px-2">
             <div className="flex h-40 items-end justify-center gap-1.5">
-              {[{ valor: d.pendentes, cor: "border border-amber-200 bg-amber-50" }, { valor: d.vendas, cor: "border border-emerald-200 bg-emerald-50" }].map((barra, i) => <div key={i} className="flex h-full w-5 flex-col justify-end">
+              {[{ valor: d.pendentes, cor: "border border-amber-400 bg-amber-300" }, { valor: d.vendas, cor: "border border-emerald-400 bg-emerald-300" }].map((barra, i) => <div key={i} className="flex h-full w-5 flex-col justify-end">
                 <span className="mb-1 text-center text-xs font-semibold text-slate-600">{barra.valor}</span>
                 <div title={`${dataCurta(d.dia)} · ${barra.valor} ${i === 0 ? "pendentes" : "vendas"}`} style={{ height: barra.valor ? `${barra.valor / maior * 128}px` : "2px" }} className={`rounded-t ${barra.valor ? barra.cor : "bg-slate-200"}`} />
               </div>)}
