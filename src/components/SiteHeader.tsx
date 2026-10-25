@@ -14,7 +14,7 @@ export function SiteHeader({ usuario }: { usuario: string }) {
         <Link href="/home" aria-label="Ir para a página inicial" className="order-1 min-w-0 justify-self-start min-[360px]:order-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/icons/ICON_APP.png"
+            src="/icons/WHITE_ICON.jpg"
             alt="OCA Distribuidora"
             className="h-12 w-16 max-w-none object-contain sm:h-9 sm:w-auto"
           />
