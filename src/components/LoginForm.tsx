@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
-import { USUARIOS, buscarUsuario } from "@/lib/usuarios";
+import { buscarUsuario } from "@/lib/usuarios";
+import { SeletorUsuario } from "./SeletorUsuario";
 
 export function LoginForm({ proxima }: { proxima: string }) {
   const [usuario, setUsuario] = useState("");
@@ -8,11 +9,14 @@ export function LoginForm({ proxima }: { proxima: string }) {
   const [manter, setManter] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [usuarioInvalido, setUsuarioInvalido] = useState(false);
   useEffect(() => {
     try { const salvo = localStorage.getItem("oca_ultimo_usuario"); if (buscarUsuario(salvo)) setUsuario(salvo!); } catch {}
   }, []);
   async function entrar(event: FormEvent) {
-    event.preventDefault(); setEnviando(true); setErro("");
+    event.preventDefault();
+    if (!buscarUsuario(usuario)) { setUsuarioInvalido(true); setErro("Selecione seu usuário para entrar."); return; }
+    setEnviando(true); setErro("");
     try {
       const res = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ usuario, senha, manter, proxima }) });
       const dados = await res.json();
@@ -21,15 +25,11 @@ export function LoginForm({ proxima }: { proxima: string }) {
       window.location.assign(dados.destino);
     } catch (error) { setErro(error instanceof Error ? error.message : "Falha de conexão. Tente novamente."); setEnviando(false); }
   }
-  return <form onSubmit={entrar} className="w-full rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+  return <form onSubmit={entrar} className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left shadow-sm">
     <h1 className="text-xl font-bold text-slate-900">Entrar no Sistema OCA</h1>
     <p className="mt-1 text-sm text-slate-500">Selecione seu usuário para começar.</p>
     <fieldset disabled={enviando} className="mt-5 flex flex-col gap-4">
-      <label className="text-sm font-medium text-slate-700">Usuário
-        <select name="username" autoComplete="username" required value={usuario} onChange={e => setUsuario(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white p-3">
-          <option value="" disabled>Selecione seu nome</option>{USUARIOS.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-        </select>
-      </label>
+      <SeletorUsuario valor={usuario} onChange={id => { setUsuario(id); setUsuarioInvalido(false); setErro(""); }} desabilitado={enviando} invalido={usuarioInvalido} />
       <label className="text-sm font-medium text-slate-700">Senha
         <input name="password" type="password" autoComplete="current-password" required maxLength={128} value={senha} onChange={e => setSenha(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 p-3" />
       </label>
