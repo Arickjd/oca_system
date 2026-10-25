@@ -113,9 +113,9 @@ export default async function OrcamentoPage({ params }: Params) {
                       {it.quantidade}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      <span className="block text-xs text-slate-500">Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
-                      <span className="block font-medium text-emerald-800">{(it.desconto_unitario ?? 0) > 0 ? "Com desconto" : "Valor da venda"}: {formatBRL(it.preco_unitario)}</span>
-                      {(it.desconto_unitario ?? 0) > 0 && <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario!)}</span>}
+                      <span className="block text-xs text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
+                      <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario ?? 0)}</span>
+                      <span className="block font-medium text-emerald-800">Valor final: {formatBRL(it.preco_unitario)}</span>
                     </td>
                     <td className="py-2 pl-2 text-right tabular-nums font-medium">
                       {formatBRL(it.subtotal)}
