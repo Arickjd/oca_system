@@ -116,11 +116,8 @@ export default async function OrcamentoPage({ params }: Params) {
                       {it.quantidade}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      {(it.desconto_unitario ?? 0) > 0 ? <>
-                        <span className="block text-xs text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>
-                        <span className="block text-xs text-emerald-700">Desconto: {formatBRL(it.desconto_unitario ?? 0)}</span>
-                        <span className="block font-medium text-emerald-800">Valor final: {formatBRL(it.preco_unitario)}</span>
-                      </> : <span className="block font-medium text-slate-500">Valor Original: {formatBRL(it.preco_original ?? it.preco_unitario)}</span>}
+                      <span className="block font-medium text-slate-500">{formatBRL(it.preco_unitario)}</span>
+                      {(it.desconto_unitario ?? 0) > 0 && <span className="block text-xs font-medium text-emerald-800">Desconto aplicado</span>}
                     </td>
                     <td className="py-2 pl-2 text-right tabular-nums font-medium">
                       {formatBRL(it.subtotal)}
@@ -134,7 +131,6 @@ export default async function OrcamentoPage({ params }: Params) {
           {/* Total */}
           <section className="flex justify-end border-t-2 border-slate-900 pt-3">
             <div className="w-full sm:w-72">
-              {pedido.itens.some(it => (it.desconto_unitario ?? 0) > 0) && <p className="mb-2 text-right text-sm text-emerald-800">Desconto total: {formatBRL(pedido.itens.reduce((s, it) => s + Math.round((it.desconto_unitario ?? 0) * it.quantidade * 100), 0) / 100)}</p>}
               <div className="flex items-center justify-between">
               <span className="font-medium text-slate-600">Total</span>
               <span className="text-2xl font-bold tabular-nums">

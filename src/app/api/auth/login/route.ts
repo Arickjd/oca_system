@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const limite = await limitarLogin(req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local");
     if (!limite.permitido) return NextResponse.json({ error: "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente." }, { status: 429, headers: { "Retry-After": String(limite.espera) } });
     const usuario = buscarUsuario(body?.usuario);
-    if (!usuario || !conferirSenha(body?.senha)) return NextResponse.json({ error: "Usuário ou senha incorretos." }, { status: 401 });
+    if (!usuario || !conferirSenha(usuario.id, body?.senha)) return NextResponse.json({ error: "Usuário ou senha incorretos." }, { status: 401 });
     const manter = body?.manter === true;
     const token = await criarSessao(usuario, manter);
     await limparTentativas(limite.chave);

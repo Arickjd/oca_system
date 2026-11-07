@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 // Execute somente contra a prévia local, com DATABASE_URL e VERCEL vazias.
 const base = process.argv[2] || "http://localhost:3015";
 if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Error("Use somente uma prévia local.");
+const senhaJardel = process.env.OCA_TEST_SENHA_JARDEL;
+if (!senhaJardel) throw new Error("Defina OCA_TEST_SENHA_JARDEL para testar o login de Jardel.");
 const request = (url, options = {}) => fetch(base + url, { redirect: "manual", ...options });
 const paginas = ["/home", "/categorias", "/produtos", "/carrinho", "/checkout", "/gerenciar-produtos", "/orcamentos", "/vendas", "/relatorios", "/orcamento/inexistente", "/orcamento/inexistente/editar", "/orcamento/inexistente/cupom"];
 for (const pagina of paginas) {
@@ -17,9 +19,10 @@ for (const [url, method] of [["/api/produtos", "POST"], ["/api/categorias", "POS
 }
 const login = (usuario, senha, manter = false, proxima = "/home") => request("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json", Origin: base }, body: JSON.stringify({ usuario, senha, manter, proxima }) });
 assert.equal((await login("jardel", "errada")).status, 401);
+assert.equal((await login("jardel", "1012")).status, 401);
 assert.equal((await login("intruso", "1012")).status, 401);
 for (const [usuario, nome] of [["jardel", "Jardel"], ["jairo", "Jairo"], ["gisele", "Gisele"], ["keylane", "Keylane"]]) {
-  const res = await login(usuario, "1012", true);
+  const res = await login(usuario, usuario === "jardel" ? senhaJardel : "1012", true);
   assert.equal(res.status, 200, usuario);
   const cookie = res.headers.get("set-cookie");
   assert.match(cookie, /HttpOnly/i); assert.match(cookie, /SameSite=lax/i); assert.match(cookie, /Max-Age=2592000/i);
@@ -43,7 +46,7 @@ for (const [usuario, nome] of [["jardel", "Jardel"], ["jairo", "Jairo"], ["gisel
   const sair = await request("/api/auth/logout", { method: "POST", headers: { Cookie: header, Origin: base } });
   assert.equal(sair.status, 303); assert.match(sair.headers.get("set-cookie"), /Max-Age=0/i);
 }
-const temporaria = await login("jardel", "1012", false, "//externo.com");
+const temporaria = await login("jardel", senhaJardel, false, "//externo.com");
 assert.equal((await temporaria.json()).destino, "/home");
 assert.ok(!/Max-Age|Expires/i.test(temporaria.headers.get("set-cookie")));
 console.log("OK: páginas e APIs fechadas, quatro logins, cookie persistente/temporário, adulteração, origem externa e saída.");

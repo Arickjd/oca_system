@@ -6,6 +6,9 @@ export const COOKIE_SESSAO = "oca_sessao";
 export const DURACAO_SESSAO = 12 * 60 * 60;
 export const DURACAO_PERSISTENTE = 30 * 24 * 60 * 60;
 
+// Incremente a versão da conta ao trocar a senha para revogar as sessões anteriores.
+const versoesSessao: Partial<Record<Usuario["id"], number>> = { jardel: 1 };
+
 function chaveSessao() {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) throw new Error("Configure AUTH_SECRET com pelo menos 32 caracteres no servidor.");
@@ -15,7 +18,8 @@ function chaveSessao() {
 export async function criarSessao(usuario: Usuario, manter: boolean, agora = new Date()) {
   const duracao = manter ? DURACAO_PERSISTENTE : DURACAO_SESSAO;
   const inicio = Math.floor(agora.getTime() / 1000);
-  return new SignJWT({ manter })
+  const versao = versoesSessao[usuario.id];
+  return new SignJWT(versao === undefined ? { manter } : { manter, versao })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(usuario.id).setIssuer("sistema-oca").setAudience("oca-usuarios")
     .setIssuedAt(inicio).setExpirationTime(inicio + duracao)
@@ -31,6 +35,7 @@ export async function validarSessao(token: string | undefined, agora = new Date(
     });
     const usuario = buscarUsuario(payload.sub);
     if (!usuario || typeof payload.manter !== "boolean") return null;
+    if (payload.versao !== versoesSessao[usuario.id]) return null;
     return { usuario, manter: payload.manter };
   } catch { return null; }
 }

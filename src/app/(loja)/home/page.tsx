@@ -8,6 +8,7 @@ export default async function HomePage() {
     <div className="flex w-full max-w-sm flex-col gap-3">
       <Link href="/categorias" className="rounded-2xl bg-slate-900 px-6 py-5 text-lg font-semibold text-white shadow-sm">Montar pedido →</Link>
       <Link href="/gerenciar-produtos" className="rounded-2xl border border-slate-300 bg-white px-6 py-5 text-lg font-semibold text-slate-800 hover:border-amber-300">Gerenciar produtos</Link>
+      <Link href="/gerenciar-estoque" className="rounded-2xl border border-slate-300 bg-white px-6 py-5 text-lg font-semibold text-slate-800 hover:border-amber-300">Gerenciar Estoque</Link>
     </div>
   </section>;
 }

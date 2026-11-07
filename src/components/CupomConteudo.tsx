@@ -5,7 +5,6 @@ import styles from "./CupomConteudo.module.css";
 
 export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Config }) {
   const finalizado = pedido.status_pagamento === "finalizado";
-  const descontoTotal = pedido.itens.reduce((s, item) => s + Math.round((item.desconto_unitario ?? 0) * item.quantidade * 100), 0) / 100;
   return <article id="cupom-conteudo" className={styles.cupom} aria-label="Prévia do cupom não fiscal de 80 mm">
     <header className={styles.cabecalho}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -29,11 +28,7 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
         {pedido.itens.map((item, index) => <li key={item.id} className={styles.item}>
           <p className={styles.nome}>{index + 1}. {item.produto_nome}</p>
           {item.modo === "pacote" && <p>Pacote{item.pack_quantidade ? ` com ${item.pack_quantidade} itens` : ""}</p>}
-          {(item.desconto_unitario ?? 0) > 0 ? <>
-            <p>Valor Original: {formatBRL(item.preco_original ?? item.preco_unitario)}</p>
-            <p>Desconto: {formatBRL(item.desconto_unitario!)}</p>
-            <p><strong>Valor final: {formatBRL(item.preco_unitario)}</strong></p>
-          </> : <p>Valor Original: {formatBRL(item.preco_unitario)}</p>}
+          {(item.desconto_unitario ?? 0) > 0 && <p>Desconto aplicado</p>}
           <div className={styles.linha}>
             <span>{item.quantidade} {item.modo === "pacote" ? "pct" : "un"} × {formatBRL(item.preco_unitario)}</span>
             <strong>{formatBRL(item.subtotal)}</strong>
@@ -42,7 +37,6 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
       </ol>
     </section>
     <section className={styles.totais} aria-label="Total e pagamento">
-      {descontoTotal > 0 && <div className={styles.linha}><span>Desconto total</span><span>{formatBRL(descontoTotal)}</span></div>}
       <div className={`${styles.linha} ${styles.total}`}><strong>TOTAL</strong><strong>{formatBRL(pedido.valor_total)}</strong></div>
       <p><strong>{finalizado ? "Pagamento finalizado" : "Pagamento pendente"}</strong></p>
       {finalizado && pedido.forma_pagamento && <p>Forma de pagamento: {formasPagamento[pedido.forma_pagamento]}</p>}

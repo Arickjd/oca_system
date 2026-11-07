@@ -66,7 +66,7 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
         {itens.map((item) => {
           const subtotal = item.preco_unitario * item.quantidade;
           const original = produtos.find(p => p.id === item.produto_id)?.preco_pack ?? item.preco_original ?? item.preco_unitario;
-          const desconto = Math.max(0, Math.round((original - item.preco_unitario) * 100)) / 100;
+          const temDesconto = Math.round((original - item.preco_unitario) * 100) > 0;
           return (
             <SalvarProduto key={item.produto_id} item={item}>
             <div
@@ -112,54 +112,29 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">
-                    Valor da venda por pacote
-                  </span>
-                  <div className="flex items-center rounded-xl border border-slate-200 focus-within:border-amber-500">
-                    <span className="pl-3 text-sm text-slate-400">R$</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      value={item.preco_unitario}
-                      onChange={(event) =>
-                        atualizarItem(item.produto_id, {
-                          preco_unitario: Number(event.target.value),
-                        })
-                      }
-                      className="min-w-0 w-full bg-transparent px-2 py-2.5 text-sm font-semibold text-slate-900 outline-none"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-slate-500">
-                    Itens por pacote
-                  </span>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-slate-500">
+                  Valor da venda por pacote
+                </span>
+                <div className="flex items-center rounded-xl border border-slate-200 focus-within:border-amber-500">
+                  <span className="pl-3 text-sm text-slate-400">R$</span>
                   <input
                     type="number"
-                    inputMode="numeric"
-                    min="1"
-                    step="1"
-                    value={item.pack_quantidade}
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={item.preco_unitario}
                     onChange={(event) =>
                       atualizarItem(item.produto_id, {
-                        pack_quantidade: Number(event.target.value),
+                        preco_unitario: Number(event.target.value),
                       })
                     }
-                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-500"
+                    className="min-w-0 w-full bg-transparent px-2 py-2.5 text-sm font-semibold text-slate-900 outline-none"
                   />
-                </label>
-              </div>
+                </div>
+              </label>
 
-              <div className="rounded-xl bg-emerald-50 p-3 text-sm">
-                <p className="text-slate-600">Valor original: {formatBRL(original)} por pacote</p>
-                <p className="font-medium text-emerald-800">Desconto por pacote: {formatBRL(desconto)}</p>
-                <p className="text-xs text-emerald-800">{desconto > 0 ? `Com desconto: ${formatBRL(item.preco_unitario)} · Economia total: ${formatBRL(desconto * item.quantidade)}` : "Reduza o valor da venda para aplicar um desconto somente neste orçamento."}</p>
-              </div>
+              {temDesconto && <span className="self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Desconto aplicado</span>}
               <RentabilidadeProduto venda={item.preco_unitario} custo={produtos.find(p => p.id === item.produto_id)?.custo_pack} />
               <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
                 <div className="flex flex-col gap-1">
