@@ -25,7 +25,8 @@ const pedido = {
 const config = { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "Contato", endereco: "Endereço de teste" };
 const render = p => renderToStaticMarkup(React.createElement(CupomConteudo, { pedido: p, config }));
 const html = render(pedido);
-for (const texto of ["80 mm", "DOCUMENTO NÃO FISCAL", "ORÇAMENTO", "Pagamento pendente", "Responsável:", "Jardel", "Valor Original:", "Valor final:", "Desconto total", "40,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
+for (const texto of ["80 mm", "DOCUMENTO NÃO FISCAL", "ORÇAMENTO", "Pagamento pendente", "Responsável:", "Jardel", "Desconto aplicado", "80,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
+for (const texto of ["Valor Original:", "Valor final:", "Desconto total", "40,00"]) assert.ok(!html.includes(texto), texto);
 for (const texto of ["lucro", "custo", "9876", "9.876", "12345", "12.345", "<script>"]) assert.ok(!html.toLowerCase().includes(texto), texto);
 const semDesconto = render({ ...pedido, itens: [{ ...pedido.itens[0], preco_unitario: 100, desconto_unitario: 0, subtotal: 200 }], valor_total: 200 });
 assert.ok(!semDesconto.includes("Desconto"));

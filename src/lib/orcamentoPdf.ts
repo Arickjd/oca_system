@@ -30,21 +30,19 @@ export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Arr
   autoTable(doc, {
     rowPageBreak: "avoid",
     startY: y + 3, margin: { left: margin, right: margin, top: 18, bottom: 24 },
-    head: [["Nº", "Produto", "Qtd", "Valor original", "Valor final", "Subtotal"]],
+    head: [["Nº", "Produto", "Qtd", "Valor por item", "Subtotal"]],
     body: pedido.itens.map((item, index) => [
       String(index + 1),
       item.produto_nome + (item.modo === "pacote" ? "\nPacote" + (item.pack_quantidade ? " com " + item.pack_quantidade + " itens" : "") : ""),
-      String(item.quantidade), formatBRL(item.preco_original ?? item.preco_unitario),
-      formatBRL(item.preco_unitario) + ((item.desconto_unitario ?? 0) > 0 ? "\nCom desconto" : ""),
+      String(item.quantidade),
+      formatBRL(item.preco_unitario) + ((item.desconto_unitario ?? 0) > 0 ? "\nDesconto aplicado" : ""),
       formatBRL(item.subtotal),
     ]),
     styles: { font: "helvetica", fontSize: 9, cellPadding: 3, overflow: "linebreak" },
     headStyles: { fillColor: [15, 23, 42] },
-    columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 58 }, 2: { cellWidth: 14, halign: "center" }, 3: { cellWidth: 32, halign: "right" }, 4: { cellWidth: 32, halign: "right" }, 5: { cellWidth: 32, halign: "right" } },
+    columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 84 }, 2: { cellWidth: 14, halign: "center" }, 3: { cellWidth: 38, halign: "right" }, 4: { cellWidth: 32, halign: "right" } },
   });
   y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 9;
-  const descontoTotal = pedido.itens.reduce((s, it) => s + Math.round((it.desconto_unitario ?? 0) * it.quantidade * 100), 0) / 100;
-  if (descontoTotal > 0) texto("Desconto total: " + formatBRL(descontoTotal));
   texto("Total: " + formatBRL(pedido.valor_total), true);
   if (pedido.observacao) { y += 4; texto("Observação: " + pedido.observacao); }
   const paginas = doc.getNumberOfPages();

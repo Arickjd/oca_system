@@ -48,7 +48,7 @@ export function SalvarProduto({ item, children }: { item: CartItem; children: Re
   return <div onBlur={(event) => { if (event.target.tagName === "INPUT") salvar(); }}>
     {children}
     <div className="px-2 py-2 text-xs" aria-live="polite">
-      <span className={erro ? "text-red-600" : "text-slate-500"}>{mensagem || "Nome e itens por pacote atualizam o catálogo. O preço negociado vale apenas para esta venda."}</span>
+      <span className={erro ? "text-red-600" : "text-slate-500"}>{mensagem || "Alterar o nome atualiza o catálogo. O preço negociado vale apenas para esta venda."}</span>
       {erro && <button type="button" onClick={salvar} className="ml-2 font-semibold underline">Tentar salvar novamente</button>}
     </div>
   </div>;

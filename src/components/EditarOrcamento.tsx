@@ -10,6 +10,7 @@ const campo = "mt-1 w-full min-w-0 rounded-xl border border-slate-300 bg-white p
 
 export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido; produtos: Produto[]; retorno: string }) {
   const router = useRouter();
+  const venda = pedido.status_pagamento === "finalizado";
   const [cliente, setCliente] = useState(pedido.cliente_nome);
   const [telefone, setTelefone] = useState(pedido.telefone);
   const [observacao, setObservacao] = useState(pedido.observacao);
@@ -40,8 +41,8 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
     } catch (error) { setErro(error instanceof Error ? error.message : "Falha ao salvar."); setSalvando(false); }
   }
   return <form onSubmit={salvar} className="flex flex-col gap-5 pb-6">
-    <div><Link href={retorno} className="text-sm underline">Voltar aos orçamentos</Link><h1 className="mt-3 text-2xl font-bold">Editar orçamento #{pedido.numero}</h1>
-      <p className="mt-2 text-sm text-slate-500">As alterações valem somente para este orçamento. O catálogo, o número e a data original serão preservados.</p></div>
+    <div><Link href={retorno} className="text-sm underline">{venda ? "Voltar às vendas" : "Voltar aos orçamentos"}</Link><h1 className="mt-3 text-2xl font-bold">Editar {venda ? "venda" : "orçamento"} #{pedido.numero}</h1>
+      <p className="mt-2 text-sm text-slate-500">O catálogo, o número e a data original serão preservados.</p></div>
     <fieldset disabled={salvando} className="flex flex-col gap-5">
       <section className="rounded-2xl border bg-white p-4"><h2 className="font-semibold">Dados do cliente</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm">Nome<input value={cliente} onChange={e => setCliente(e.target.value)} className={campo} /></label>
@@ -53,7 +54,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
         <ul className="mt-2 max-h-64 overflow-auto divide-y">{encontrados.map(p => <li key={p.id}><button type="button" onClick={() => adicionar(p)} className="flex w-full items-center justify-between gap-3 rounded-lg p-3 text-left hover:bg-slate-50"><span className="min-w-0 break-words text-sm">{p.nome}<span className="block text-xs text-slate-500">{p.pack_quantidade} itens/pacote · {formatBRL(p.preco_pack)}</span></span><span className="text-sm font-semibold">+ Adicionar</span></button></li>)}</ul>
         {busca.trim().length >= 2 && !encontrados.length && <p className="text-sm text-slate-500">Nenhum produto encontrado.</p>}
       </section>
-      <section className="flex flex-col gap-3"><h2 className="font-semibold">Produtos do orçamento · {itens.length}</h2>
+      <section className="flex flex-col gap-3"><h2 className="font-semibold">Produtos {venda ? "da venda" : "do orçamento"} · {itens.length}</h2>
         {itens.map((it, index) => <article key={it.chave} className="rounded-2xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Item {index + 1} · {it.modo === "pacote" ? "Pacote" : "Unidade"}</h3><button type="button" onClick={() => setItens(lista => lista.filter(i => i.chave !== it.chave))} className="rounded-lg px-3 py-2 text-sm text-red-700" aria-label={`Remover ${it.produto_nome}`}>Remover</button></div>
           <label className="block text-sm">Produto<input required value={it.produto_nome} onChange={e => alterar(it.chave, { produto_nome: e.target.value })} className={campo} /></label>
@@ -62,11 +63,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
             <label className="min-w-0 text-sm">Valor da venda (R$)/{it.modo === "pacote" ? "pacote" : "unidade"}<input required type="number" min="0" step="0.01" inputMode="decimal" value={it.preco_unitario} onChange={e => alterar(it.chave, { preco_unitario: e.target.value })} className={campo} /></label>
             {it.modo === "pacote" && <label className="min-w-0 text-sm">Itens por pacote<input required type="number" min="1" step="1" value={it.pack_quantidade} onChange={e => alterar(it.chave, { pack_quantidade: e.target.value })} className={campo} /></label>}
           </div>
-          <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm">
-            <p className="text-slate-600">Valor original: {formatBRL(it.preco_original)}</p>
-            <p className="font-medium text-emerald-800">Desconto por {it.modo === "pacote" ? "pacote" : "unidade"}: {formatBRL(Math.max(0, Math.round((it.preco_original - Number(it.preco_unitario)) * 100)) / 100)}</p>
-            <p className="text-xs text-emerald-800">O valor negociado vale apenas para este orçamento.</p>
-          </div>
+          {it.preco_unitario !== "" && Math.round((it.preco_original - Number(it.preco_unitario)) * 100) > 0 && <p className="mt-3 text-xs font-medium text-emerald-800">Desconto aplicado</p>}
           <p className="mt-3 text-right text-sm">Subtotal: <strong>{formatBRL(Number(it.preco_unitario) * Number(it.quantidade))}</strong></p>
         </article>)}
         {!itens.length && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Adicione um produto para salvar o orçamento.</p>}

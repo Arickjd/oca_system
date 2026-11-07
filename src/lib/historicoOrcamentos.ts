@@ -9,6 +9,18 @@ export function separarHistorico(pedidos: Pedido[]) {
   };
 }
 
+export function resumoLucroVendas(pedidos: Pedido[]) {
+  const { vendas } = separarHistorico(pedidos);
+  const linhas = vendas.map(venda => {
+    const lucro = venda.lucro_bruto;
+    return { venda, lucro: typeof lucro === "number" && Number.isFinite(lucro) ? lucro : null };
+  });
+  const semCusto = linhas.filter(linha => linha.lucro === null).length;
+  const centavos = linhas.reduce((soma, { lucro }) => soma + Math.round((lucro ?? 0) * 100), 0);
+  const total = semCusto > 0 && semCusto === linhas.length ? null : centavos / 100;
+  return { linhas, total, semCusto, parcial: semCusto > 0 && total !== null };
+}
+
 export function diasPendentes(pedidos: Pedido[]) {
   const dias = new Map<string, number>();
   for (const p of separarHistorico(pedidos).pendentes) {

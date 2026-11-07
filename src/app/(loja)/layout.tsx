@@ -16,7 +16,7 @@ export default async function LojaLayout({
   const config = await getConfig();
   return (
     <div className="min-h-dvh flex flex-col">
-      <SiteHeader usuario={usuario.nome} />
+      <SiteHeader usuario={usuario.nome} admin={usuario.papel === "admin"} />
       <main className="flex-1 w-full max-w-3xl mx-auto px-3 py-4">
         {children}
       </main>

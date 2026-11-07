@@ -6,7 +6,7 @@ import { filtrarPeriodo, FUSO, resolverPeriodo, resumoPeriodo } from "@/lib/peri
 
 const atalhos = [
   { href: "/gerenciar-produtos", titulo: "Gerenciar produtos", descricao: "Consulte e edite o catálogo", icone: "M4 7h16M4 12h16M4 17h10M8 5v4m8 1v4m-8 1v4" },
-  { href: "/gerenciar-estoque", titulo: "Gerenciar Estoque", descricao: "Em desenvolvimento", icone: "M3 21V8l9-5 9 5v13M7 21v-9h10v9m-10-5h10M3 21h18" },
+  { href: "/gerenciar-estoque", titulo: "Gerenciar Estoque", icone: "M3 21V8l9-5 9 5v13M7 21v-9h10v9m-10-5h10M3 21h18" },
 ];
 
 export default async function HomePage() {
@@ -36,7 +36,7 @@ export default async function HomePage() {
           <path d="M215 53v16m-8-8h16M91 73v10m-5-5h10" stroke="#fde68a" strokeWidth="2" strokeLinecap="round" />
         </svg>
         <p className="text-xs font-semibold text-amber-200 first-letter:uppercase sm:text-sm">{data}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Olá, {usuario.nome}!</h1>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{usuario.nome}</h1>
         <Link href="/categorias" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 sm:px-5">
           Montar pedido <span aria-hidden="true">→</span>
         </Link>
@@ -69,7 +69,7 @@ export default async function HomePage() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-slate-900">{titulo}</span>
-                <span className="mt-0.5 block text-xs text-slate-600">{descricao}</span>
+                {descricao && <span className="mt-0.5 block text-xs text-slate-600">{descricao}</span>}
               </span>
               <span aria-hidden="true" className="text-slate-500 transition-transform group-hover:translate-x-0.5">→</span>
             </Link>

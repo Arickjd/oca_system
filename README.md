@@ -30,7 +30,7 @@ npm run start
 
 ## Login e configuração para deploy
 
-- `/` é a tela de login, com Jardel, Jairo, Gisele e Keylane. A senha inicial compartilhada é `1012`.
+- `/` é a tela de login, com Jardel, Jairo, Gisele e Keylane. Jardel tem uma senha própria. A senha inicial compartilhada de Jairo, Gisele e Keylane é `1012`.
 - Após entrar, `/home` mostra o header padrão e os botões Montar pedido e Gerenciar produtos. A logo do header volta para essa home.
 - Configure **AUTH_SECRET** no `.env.local` e nas variáveis de ambiente da Vercel (Production e Preview). Deve ter pelo menos 32 caracteres aleatórios. Gere com `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"`. Não publique essa chave no Git e mantenha o valor entre deploys para preservar as sessões.
 - As sessões são assinadas com a biblioteca `jose` e armazenadas em cookie HttpOnly. Manter conectado dura até 30 dias; sem marcar, o cookie é de sessão e o token dura no máximo 12 horas. Sair remove a sessão apenas do navegador atual.

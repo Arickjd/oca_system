@@ -1,4 +1,4 @@
-import { verificarAcessoApi } from "@/lib/auth-servidor";
+import { obterSessao, verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getPedidos } from "@/lib/db";
 import { getConfig } from "@/lib/config";
@@ -12,7 +12,10 @@ export async function GET(req: NextRequest) {
   const negado = await verificarAcessoApi(); if (negado) return negado;
   const query = req.nextUrl.searchParams;
   const tipo = query.get("tipo");
-  if (tipo !== "resumido" && tipo !== "detalhado") return NextResponse.json({ error: "Tipo de relatório inválido." }, { status: 400 });
+  if (tipo !== "resumido" && tipo !== "detalhado" && tipo !== "lucro") return NextResponse.json({ error: "Tipo de relatório inválido." }, { status: 400 });
+  if (tipo === "lucro" && (await obterSessao())?.usuario.papel !== "admin") {
+    return NextResponse.json({ error: "Apenas o administrador pode gerar o relatório de lucro." }, { status: 403 });
+  }
   let periodo;
   try { periodo = resolverPeriodo({ periodo: query.get("periodo") ?? undefined, inicio: query.get("inicio") ?? undefined, fim: query.get("fim") ?? undefined }); }
   catch { return NextResponse.json({ error: "Selecione um período válido." }, { status: 400 }); }

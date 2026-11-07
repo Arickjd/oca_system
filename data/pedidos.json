@@ -173,8 +173,11 @@
       }
     ],
     "valor_total": 40,
-    "status": "novo",
-    "created_at": "2026-07-20T14:29:21.826Z"
+    "status": "concluido",
+    "created_at": "2026-07-20T14:29:21.826Z",
+    "status_pagamento": "finalizado",
+    "forma_pagamento": "pix",
+    "pago_em": "2026-11-07T00:17:31.444Z"
   },
   {
     "id": "802663ac-8f65-40a9-bf25-455fe2b0046f",
@@ -217,7 +220,56 @@
       }
     ],
     "valor_total": 192,
-    "status": "novo",
-    "created_at": "2026-10-19T14:23:13.409Z"
+    "status": "concluido",
+    "created_at": "2026-10-19T14:23:13.409Z",
+    "status_pagamento": "finalizado",
+    "forma_pagamento": "pix",
+    "pago_em": "2026-11-07T00:18:10.261Z"
+  },
+  {
+    "id": "d875d4fb-3932-4dff-8a07-abcf35aa18ca",
+    "numero": 8,
+    "cliente_nome": "Cliente fictício (demonstração)",
+    "telefone": "",
+    "observacao": "Venda de exemplo criada apenas para visualização local.",
+    "criado_por": {
+      "id": "jardel",
+      "nome": "Jardel"
+    },
+    "itens": [
+      {
+        "id": "7846b0bb-1675-4914-94ca-4089f6ea4bbc",
+        "produto_id": "demo-copo-180",
+        "produto_nome": "Copo descartável 180 ml (exemplo)",
+        "modo": "pacote",
+        "pack_quantidade": 100,
+        "quantidade": 2,
+        "preco_original": 90,
+        "preco_unitario": 85,
+        "desconto_unitario": 5,
+        "custo_unitario": 65,
+        "subtotal": 170
+      },
+      {
+        "id": "73de2a9c-8c64-4e2f-8ebe-4f9e33e4f3ca",
+        "produto_id": "demo-pote-500",
+        "produto_nome": "Pote com tampa 500 ml (exemplo)",
+        "modo": "pacote",
+        "pack_quantidade": 50,
+        "quantidade": 1,
+        "preco_original": 115,
+        "preco_unitario": 115,
+        "desconto_unitario": 0,
+        "custo_unitario": 80,
+        "subtotal": 115
+      }
+    ],
+    "valor_total": 285,
+    "lucro_bruto": 75,
+    "status": "concluido",
+    "status_pagamento": "finalizado",
+    "forma_pagamento": "pix",
+    "created_at": "2026-11-07T00:19:27.563Z",
+    "pago_em": "2026-11-07T00:19:27.563Z"
   }
 ]

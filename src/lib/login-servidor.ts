@@ -1,10 +1,15 @@
 import { createHash, scryptSync, timingSafeEqual } from "node:crypto";
 import * as postgres from "./postgres";
+import type { Usuario } from "./usuarios";
 
 const senhaHash = Buffer.from("53041eb1433ba338a47107b752a5b781987cbd3df3f1bab072465eacfff17c10", "hex");
-export function conferirSenha(senha: unknown) {
+const senhaJardelHash = Buffer.from("c50fc20d04d13b3158a6fbbd1de27747b060e2a5c4ff979ee253e1c4545ece73", "hex");
+
+export function conferirSenha(usuarioId: Usuario["id"], senha: unknown) {
   if (typeof senha !== "string" || senha.length > 128) return false;
-  return timingSafeEqual(scryptSync(senha, "oca-login-v1", 32), senhaHash);
+  const jardel = usuarioId === "jardel";
+  const sal = jardel ? "oca-login-jardel-v1" : "oca-login-v1";
+  return timingSafeEqual(scryptSync(senha, sal, 32), jardel ? senhaJardelHash : senhaHash);
 }
 
 const tentativas = new Map<string, { quantidade: number; ate: number }>();
