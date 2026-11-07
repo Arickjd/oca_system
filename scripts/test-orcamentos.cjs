@@ -16,6 +16,10 @@ assert.equal(diaLocal(agora), "2026-10-22");
 assert.equal(diaLocal("2026-10-23T03:00:00Z"), "2026-10-23");
 assert.deepEqual(resolverPeriodo({}, agora), { tipo: "hoje", inicio: "2026-10-22", fim: "2026-10-22" });
 assert.equal(resolverPeriodo({ periodo: "semana" }, new Date("2026-01-03T12:00Z")).inicio, "2025-12-28");
+assert.deepEqual(resolverPeriodo({ periodo: "semana-atual" }, new Date("2026-01-04T12:00Z")), { tipo: "semana-atual", inicio: "2025-12-29", fim: "2026-01-04" });
+assert.deepEqual(resolverPeriodo({ periodo: "semana-atual" }, new Date("2026-01-05T03:00Z")), { tipo: "semana-atual", inicio: "2026-01-05", fim: "2026-01-05" });
+assert.deepEqual(resolverPeriodo({ periodo: "mes" }, new Date("2026-02-01T02:59Z")), { tipo: "mes", inicio: "2026-01-01", fim: "2026-01-31" });
+assert.deepEqual(resolverPeriodo({ periodo: "mes" }, new Date("2026-02-01T03:00Z")), { tipo: "mes", inicio: "2026-02-01", fim: "2026-02-01" });
 for (const params of [{ periodo: "x" }, { periodo: "personalizado", inicio: "2026-02-30", fim: "2026-03-01" }, { periodo: "personalizado", inicio: "2026-10-23", fim: "2026-10-22" }]) assert.throws(() => resolverPeriodo(params));
 const periodo = resolverPeriodo({ periodo: "personalizado", inicio: "2026-10-22", fim: "2026-10-22" });
 const candidatos = ["2026-10-22T02:59:59Z", "2026-10-22T03:00:00Z", "2026-10-23T02:59:59Z", "2026-10-23T03:00:00Z"].map((created_at, i) => ({ id: String(i), numero: i, created_at, valor_total: 10.1, status_pagamento: i === 1 ? "finalizado" : "pendente" }));
@@ -33,6 +37,8 @@ const pedidos = Array.from({ length: 8 }, (_, i) => ({ id: String(i), numero: 10
   valor_total: (i === 0 ? 22 : 4) * 20.2,
 }));
 fs.mkdirSync("tmp/pdfs", { recursive: true });
+const pdfLucro = gerarRelatorioOrcamentos(pedidos.map((pedido, index) => ({ ...pedido, lucro_bruto: index === 1 ? 75 : null })), periodo, "lucro", "OCA Distribuidora");
+assert.equal(Buffer.from(pdfLucro).subarray(0, 5).toString(), "%PDF-");
 for (const tipo of ["resumido", "detalhado"]) {
   const pdf = gerarRelatorioOrcamentos(pedidos, periodo, tipo, "OCA Distribuidora");
   assert.equal(Buffer.from(pdf).subarray(0, 5).toString(), "%PDF-");

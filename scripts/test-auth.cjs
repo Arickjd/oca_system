@@ -19,6 +19,7 @@ async function main() {
   try {
     const auth = load("src/lib/auth.ts");
     const { USUARIOS } = load("src/lib/usuarios.ts");
+    assert.deepEqual(USUARIOS.filter(usuario => usuario.papel === "admin").map(usuario => usuario.id), ["jardel"]);
     const agora = new Date("2026-10-25T12:00:00Z");
     for (const usuario of USUARIOS) {
       const token = await auth.criarSessao(usuario, true, agora);
@@ -33,6 +34,8 @@ async function main() {
     const chave = new TextEncoder().encode(process.env.AUTH_SECRET);
     const invalido = await new jose.SignJWT({ manter: true }).setProtectedHeader({ alg: "HS256" }).setSubject("intruso").setIssuer("sistema-oca").setAudience("oca-usuarios").setIssuedAt().setExpirationTime("1h").sign(chave);
     assert.equal(await auth.validarSessao(invalido), null);
+    const jardelAntigo = await new jose.SignJWT({ manter: true }).setProtectedHeader({ alg: "HS256" }).setSubject("jardel").setIssuer("sistema-oca").setAudience("oca-usuarios").setIssuedAt().setExpirationTime("1h").sign(chave);
+    assert.equal(await auth.validarSessao(jardelAntigo), null);
     process.env.AUTH_SECRET = "outra-chave-de-teste-com-mais-de-32-caracteres";
     assert.equal(await auth.validarSessao(temporario, agora), null);
     delete process.env.AUTH_SECRET;
@@ -43,8 +46,9 @@ async function main() {
     assert.equal(auth.origemPermitida(new Headers({ host: "oca.local", origin: "https://externo.com" })), false);
     assert.equal(auth.origemPermitida(new Headers({ host: "oca.local", origin: "https://oca.local" })), true);
     const login = load("src/lib/login-servidor.ts");
-    assert.equal(login.conferirSenha("1012"), true);
-    for (const senha of ["1013", "", 1012, null]) assert.equal(login.conferirSenha(senha), false);
+    assert.equal(login.conferirSenha("jardel", "1012"), false);
+    for (const usuario of ["jairo", "gisele", "keylane"]) assert.equal(login.conferirSenha(usuario, "1012"), true);
+    for (const senha of ["1013", "", 1012, null]) assert.equal(login.conferirSenha("jairo", senha), false);
     let limite;
     for (let i = 0; i < 10; i++) assert.equal((limite = await login.limitarLogin("teste-local")).permitido, true);
     assert.equal((await login.limitarLogin("teste-local")).permitido, false);
@@ -59,10 +63,10 @@ async function main() {
     });
     const req = new Request("http://oca.local/api/pedidos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ criado_por: USUARIOS[2], itens: [{ produto_id: "p", produto_nome: "Produto", quantidade: 1, pack_quantidade: 1, preco_unitario: 10 }] }) });
     assert.equal((await api.POST(req)).status, 201);
-    assert.deepEqual(recebido.criado_por, USUARIOS[0]);
+    assert.deepEqual(recebido.criado_por, { id: USUARIOS[0].id, nome: USUARIOS[0].nome });
     negado = true;
     assert.equal((await api.GET()).status, 401);
-    console.log("OK: quatro usuários, senha, assinatura, expiração, destinos seguros, limite de tentativas e responsável obtido da sessão.");
+    console.log("OK: quatro usuários, papel de administrador, senha, assinatura, expiração, destinos seguros, limite de tentativas e responsável obtido da sessão.");
   } finally {
     for (const [nome, valor] of [["AUTH_SECRET", anteriores.segredo], ["DATABASE_URL", anteriores.database], ["VERCEL", anteriores.vercel]]) {
       if (valor === undefined) delete process.env[nome]; else process.env[nome] = valor;

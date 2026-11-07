@@ -1,4 +1,4 @@
-import { verificarAcessoApi } from "@/lib/auth-servidor";
+import { obterSessao, verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
 import { getPedido, excluirPedido, finalizarPagamento, editarPedido, EdicaoInvalida } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -10,9 +10,15 @@ type Params = { params: Promise<{ id: string }> };
 export async function PUT(req: NextRequest, { params }: Params) {
   const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
+  const admin = (await obterSessao())?.usuario.papel === "admin";
   try {
-    const pedido = await editarPedido(id, await req.json().catch(() => null));
-    if (!pedido) return NextResponse.json({ error: "O orçamento foi alterado, efetivado ou excluído. Recarregue a página antes de continuar." }, { status: 409 });
+    const pedido = await editarPedido(id, await req.json().catch(() => null), admin);
+    if (!pedido) {
+      if (!admin && (await getPedido(id))?.status_pagamento === "finalizado") {
+        return NextResponse.json({ error: "Apenas o administrador pode editar vendas." }, { status: 403 });
+      }
+      return NextResponse.json({ error: "O registro foi alterado, efetivado ou excluído. Recarregue a página antes de continuar." }, { status: 409 });
+    }
     revalidarHistorico();
     revalidatePath(`/orcamento/${id}`);
     revalidatePath(`/orcamento/${id}/editar`);
@@ -47,8 +53,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const negado = await verificarAcessoApi(); if (negado) return negado;
   const { id } = await params;
+  const admin = (await obterSessao())?.usuario.papel === "admin";
   try {
-    if (!await excluirPedido(id)) {
+    if (!await excluirPedido(id, admin)) {
+      if (!admin && (await getPedido(id))?.status_pagamento === "finalizado") {
+        return NextResponse.json({ error: "Apenas o administrador pode excluir vendas." }, { status: 403 });
+      }
       return NextResponse.json({ error: "Orçamento não encontrado." }, { status: 404 });
     }
     revalidarHistorico();

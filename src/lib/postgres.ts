@@ -73,7 +73,7 @@ export async function excluirProduto(id: string): Promise<boolean> {
 
 export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status_pagamento" | "forma_pagamento" | "pago_em" | "status">, revisao?: number): Promise<Pedido | undefined> {
   const rows = await sql().query(`
-    UPDATE oca_registros SET dados = dados || $2::jsonb
+    UPDATE oca_registros SET dados = dados || $2::jsonb || jsonb_build_object('revisao', COALESCE((dados->>'revisao')::integer, 0) + 1)
     WHERE colecao = 'pedidos' AND id = $1
       AND dados->>'excluido_em' IS NULL
       AND dados->>'status_pagamento' IS DISTINCT FROM 'finalizado'
@@ -85,24 +85,25 @@ export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status
 
 type ProdutoExcluido = { id: string; excluido_em: string };
 
-export async function editarPedidoPendente(id: string, patch: object, revisao: number): Promise<Pedido | undefined> {
+export async function editarPedido(id: string, patch: object, revisao: number, permitirVenda = false): Promise<Pedido | undefined> {
   const rows = await sql().query(`
     UPDATE oca_registros SET dados = dados || $2::jsonb
     WHERE colecao = 'pedidos' AND id = $1 AND dados->>'excluido_em' IS NULL
-      AND dados->>'status_pagamento' IS DISTINCT FROM 'finalizado'
+      AND ($4::boolean OR dados->>'status_pagamento' IS DISTINCT FROM 'finalizado')
       AND COALESCE((dados->>'revisao')::integer, 0) = $3
     RETURNING dados
-  `, [id, JSON.stringify(patch), revisao]);
+  `, [id, JSON.stringify(patch), revisao, permitirVenda]);
   return rows[0]?.dados as Pedido | undefined;
 }
 
 // Exclusão lógica sem alterar o contador de orçamentos.
-export async function excluirPedido(id: string): Promise<boolean> {
+export async function excluirPedido(id: string, permitirVenda = false): Promise<boolean> {
   const rows = await sql().query(`
     UPDATE oca_registros SET dados = dados || jsonb_build_object('excluido_em', $2::text)
     WHERE colecao = 'pedidos' AND id = $1 AND dados->>'excluido_em' IS NULL
+      AND ($3::boolean OR dados->>'status_pagamento' IS DISTINCT FROM 'finalizado')
     RETURNING id
-  `, [id, new Date().toISOString()]);
+  `, [id, new Date().toISOString(), permitirVenda]);
   return rows.length > 0;
 }
 

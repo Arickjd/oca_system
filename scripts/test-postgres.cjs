@@ -133,12 +133,13 @@ async function main() {
     // A condição SQL também protege requisições de instâncias distintas.
     const protegido = await api.createPedido({ itens: [] });
     const disputas = await Promise.all([
-      store.editarPedidoPendente(protegido.id, { revisao: 1 }, 0),
-      store.editarPedidoPendente(protegido.id, { revisao: 1 }, 0),
+      store.editarPedido(protegido.id, { revisao: 1 }, 0),
+      store.editarPedido(protegido.id, { revisao: 1 }, 0),
     ]);
     assert.equal(disputas.filter(Boolean).length, 1);
-    await api.finalizarPagamento(protegido.id, "pix", 1);
-    assert.equal(await store.editarPedidoPendente(protegido.id, { revisao: 2 }, 1), undefined);
+    const pago = await api.finalizarPagamento(protegido.id, "pix", 1);
+    assert.equal(await store.editarPedido(protegido.id, { revisao: 3 }, pago.revisao), undefined);
+    assert.equal(await store.excluirPedido(protegido.id), false);
     const chaveLogin = "auth-tentativas:teste";
     const tentativasLogin = await Promise.all(Array.from({ length: 12 }, () => store.registrarTentativaLogin(chaveLogin, 1000, 900000, 10)));
     assert.equal(tentativasLogin.filter(t => t.permitido).length, 10);

@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     cliente_nome: body?.cliente_nome,
     telefone: body?.telefone,
     observacao: body?.observacao,
-    criado_por: sessao.usuario,
+    criado_por: { id: sessao.usuario.id, nome: sessao.usuario.nome },
     itens,
   });
 

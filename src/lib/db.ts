@@ -176,12 +176,12 @@ export async function getPedido(id: string): Promise<Pedido | undefined> {
 }
 
 // Exclusão lógica preserva a numeração e impede que uma reimportação restaure o orçamento.
-export async function excluirPedido(id: string): Promise<boolean> {
-  if (postgres.usarPostgres()) return postgres.excluirPedido(id);
+export async function excluirPedido(id: string, permitirVenda = false): Promise<boolean> {
+  if (postgres.usarPostgres()) return postgres.excluirPedido(id, permitirVenda);
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
-    if (!pedido) return false;
+    if (!pedido || (!permitirVenda && pedido.status_pagamento === "finalizado")) return false;
     pedido.excluido_em = new Date().toISOString();
     const dest = path.join(DATA_DIR, "pedidos.json");
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
@@ -200,7 +200,7 @@ export async function finalizarPagamento(id: string, forma: FormaPagamento, revi
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
     if (!pedido) return undefined;
-    Object.assign(pedido, patch);
+    Object.assign(pedido, patch, { revisao: (pedido.revisao ?? 0) + 1 });
     const dest = path.join(DATA_DIR, "pedidos.json");
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
@@ -257,13 +257,13 @@ export function validarEdicaoPedido(body: unknown): EdicaoPedido {
   return b;
 }
 
-export async function editarPedido(id: string, body: unknown): Promise<Pedido | undefined> {
+export async function editarPedido(id: string, body: unknown, permitirVenda = false): Promise<Pedido | undefined> {
   const input = validarEdicaoPedido(body);
   const run = writeChain.then(async () => {
     const remoto = postgres.usarPostgres();
     const pedidos = remoto ? [] : await readData<Pedido[]>("pedidos.json", []);
     const anterior = remoto ? await getPedido(id) : pedidos.find(p => p.id === id && !p.excluido_em);
-    if (!anterior || anterior.status_pagamento === "finalizado" || (anterior.revisao ?? 0) !== input.revisao) return undefined;
+    if (!anterior || (!permitirVenda && anterior.status_pagamento === "finalizado") || (anterior.revisao ?? 0) !== input.revisao) return undefined;
     const catalogo = new Map((await getProdutos()).map(p => [p.id, p]));
     const itens: ItemPedido[] = input.itens.map(it => {
       const antigo = it.id ? anterior.itens.find(a => a.id === it.id) : undefined;
@@ -289,7 +289,7 @@ export async function editarPedido(id: string, body: unknown): Promise<Pedido | 
       itens, valor_total: total, lucro_bruto: itens.every(it => it.custo_unitario != null)
         ? (Math.round(total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100 : null,
       updated_at: new Date().toISOString(), revisao: input.revisao + 1 };
-    if (remoto) return postgres.editarPedidoPendente(id, patch, input.revisao);
+    if (remoto) return postgres.editarPedido(id, patch, input.revisao, permitirVenda);
     Object.assign(anterior, patch);
     const dest = path.join(DATA_DIR, "pedidos.json");
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");

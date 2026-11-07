@@ -4,6 +4,7 @@ import { ListaOrcamentos } from "@/components/ListaOrcamentos";
 import { FiltroOrcamentos } from "@/components/FiltroOrcamentos";
 import { resolverPeriodo, filtrarPeriodo, dataCurta } from "@/lib/periodoOrcamentos";
 import { separarHistorico } from "@/lib/historicoOrcamentos";
+import { exigirSessao } from "@/lib/auth-servidor";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,19 @@ export default async function VendasPage({ searchParams }: { searchParams: Promi
   let periodo;
   try { periodo = resolverPeriodo({ periodo: valor("periodo"), inicio: valor("inicio"), fim: valor("fim") }); }
   catch { return <section className="rounded-2xl bg-white p-6"><h1 className="text-xl font-bold">Período inválido</h1><p className="my-3">Escolha datas válidas, com início anterior ou igual ao fim.</p><Link href="/vendas" className="underline">Voltar às vendas de hoje</Link></section>; }
+  const { usuario } = await exigirSessao();
   const { vendas } = separarHistorico(await getPedidos());
   const pedidos = filtrarPeriodo(vendas, periodo);
+  const consulta = new URLSearchParams({ periodo: periodo.tipo });
+  if (periodo.tipo === "personalizado") {
+    consulta.set("inicio", periodo.inicio);
+    consulta.set("fim", periodo.fim);
+  }
+  const retorno = periodo.tipo === "hoje" ? "/vendas" : `/vendas?${consulta}`;
   return <section className="flex flex-col gap-5 pb-6">
     <div><h1 className="text-2xl font-bold text-slate-900">Vendas</h1><p className="mt-1 text-sm text-slate-500">Orçamentos com pagamento finalizado.</p></div>
     <FiltroOrcamentos key={`${periodo.tipo}-${periodo.inicio}-${periodo.fim}`} periodo={periodo} destino="/vendas" />
     <p className="text-sm font-medium text-slate-600">{dataCurta(periodo.inicio)}{periodo.inicio !== periodo.fim && ` a ${dataCurta(periodo.fim)}`} · {pedidos.length} venda(s)</p>
-    <ListaOrcamentos pedidos={pedidos} retorno="/vendas" vendas />
+    <ListaOrcamentos pedidos={pedidos} retorno={retorno} vendas admin={usuario.papel === "admin"} />
   </section>;
 }

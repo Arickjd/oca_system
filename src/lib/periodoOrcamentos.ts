@@ -1,7 +1,7 @@
 import type { Pedido } from "./types";
 
 export const FUSO = "America/Sao_Paulo";
-export type Periodo = { tipo: "hoje" | "semana" | "personalizado"; inicio: string; fim: string };
+export type Periodo = { tipo: "hoje" | "semana" | "semana-atual" | "mes" | "personalizado"; inicio: string; fim: string };
 export function diaLocal(iso: string | Date): string {
   const data = new Date(iso);
   if (!Number.isFinite(data.getTime())) return "";
@@ -17,9 +17,11 @@ export function resolverPeriodo(params: { periodo?: string; inicio?: string; fim
   const hoje = diaLocal(agora);
   const tipo = params.periodo || "hoje";
   if (tipo === "hoje") return { tipo, inicio: hoje, fim: hoje };
-  if (tipo === "semana") {
+  if (tipo === "mes") return { tipo, inicio: `${hoje.slice(0, 7)}-01`, fim: hoje };
+  if (tipo === "semana" || tipo === "semana-atual") {
     const inicio = new Date(`${hoje}T12:00:00Z`);
-    inicio.setUTCDate(inicio.getUTCDate() - 6);
+    const diasAnteriores = tipo === "semana" ? 6 : (inicio.getUTCDay() + 6) % 7;
+    inicio.setUTCDate(inicio.getUTCDate() - diasAnteriores);
     return { tipo, inicio: inicio.toISOString().slice(0, 10), fim: hoje };
   }
   if (tipo !== "personalizado" || !params.inicio || !params.fim || !dataValida(params.inicio) || !dataValida(params.fim) || params.inicio > params.fim) {

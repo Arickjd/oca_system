@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { Periodo } from "@/lib/periodoOrcamentos";
 
-export function RelatorioOrcamentos({ periodo, vazio }: { periodo: Periodo; vazio: boolean }) {
+export function RelatorioOrcamentos({ periodo, vazio, admin, temVendas }: { periodo: Periodo; vazio: boolean; admin: boolean; temVendas: boolean }) {
   const [gerando, setGerando] = useState("");
   const [erro, setErro] = useState("");
   async function baixar(tipo: string) {
@@ -24,7 +24,9 @@ export function RelatorioOrcamentos({ periodo, vazio }: { periodo: Periodo; vazi
     <p className="mt-1 text-sm text-slate-500">Resumido: uma linha por orçamento. Detalhado: todos os produtos de cada orçamento.</p>
     <div className="mt-3 flex flex-wrap gap-2">
       {[['resumido', 'PDF resumido'], ['detalhado', 'PDF detalhado']].map(([tipo, nome]) => <button key={tipo} type="button" disabled={!!gerando || vazio} onClick={() => baixar(tipo)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold disabled:opacity-40">{gerando === tipo ? "Gerando…" : nome}</button>)}
+      {admin && <button type="button" disabled={!!gerando || !temVendas} onClick={() => baixar("lucro")} className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-900 enabled:hover:bg-emerald-100 disabled:opacity-40">{gerando === "lucro" ? "Gerando…" : "PDF de lucro"}</button>}
     </div>
+    {admin && <p className="mt-3 text-xs text-slate-500">{temVendas ? "Lucro bruto por venda finalizada e total do período." : "O PDF de lucro fica disponível quando há vendas finalizadas no período."}</p>}
     {erro && <p role="alert" className="mt-2 text-sm text-red-700">{erro}</p>}
   </section>;
 }
