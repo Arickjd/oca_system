@@ -8,6 +8,7 @@ import { ExportarBanco } from "@/components/ExportarBanco";
 import { resolverPeriodo, filtrarPeriodo, resumoPeriodo, dataCurta } from "@/lib/periodoOrcamentos";
 import { exigirSessao } from "@/lib/auth-servidor";
 import { resumoLucroVendas } from "@/lib/historicoOrcamentos";
+import { VendasPorUsuario } from "@/components/VendasPorUsuario";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,8 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
   try { periodo = resolverPeriodo({ periodo: valor("periodo"), inicio: valor("inicio"), fim: valor("fim") }); }
   catch { return <section className="rounded-2xl bg-white p-6"><h1 className="text-xl font-bold">Período inválido</h1><p className="my-3">Escolha datas válidas, com início anterior ou igual ao fim.</p><Link href="/relatorios" className="underline">Voltar aos relatórios de hoje</Link></section>; }
   const { usuario } = await exigirSessao();
-  const pedidos = filtrarPeriodo(await getPedidos(), periodo);
+  const todosPedidos = await getPedidos();
+  const pedidos = filtrarPeriodo(todosPedidos, periodo);
   const resumo = resumoPeriodo(pedidos);
   const admin = usuario.papel === "admin";
   const lucro = admin ? resumoLucroVendas(pedidos) : null;
@@ -38,6 +40,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
       </div>
     </div>
     <GraficoOrcamentos pedidos={pedidos} periodo={periodo} />
+    {admin && <VendasPorUsuario pedidos={todosPedidos} params={params} />}
     <RelatorioOrcamentos key={`${periodo.inicio}-${periodo.fim}`} periodo={periodo} vazio={!pedidos.length} admin={admin} temVendas={resumo.pagos > 0} />
     <ExportarBanco />
   </section>;

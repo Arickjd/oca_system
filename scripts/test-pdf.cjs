@@ -7,7 +7,7 @@ function load(file) {
   const filename = path.resolve(file);
   const mod = new Module(filename, module);
   mod.filename = filename; mod.paths = module.paths;
-  mod.require = name => name === "./format" ? load("src/lib/format.ts") : require(name);
+  mod.require = name => name.startsWith(".") ? load(path.resolve(path.dirname(filename), name + ".ts")) : require(name);
   mod._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText, filename);
@@ -23,7 +23,7 @@ const pdf = gerarOrcamentoPdf({
   created_at: "2026-10-19T12:00:00Z", itens, valor_total: 5325,
   observacao: "Entrega pela manhã. " + "Conferir os pacotes e o endereço de entrega. ".repeat(15), status: "novo",
 }, { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "(89) 99427-0756", endereco: "", whatsapp: "", pack_padrao: 6 },
-fs.readFileSync("public/logo.png"));
+fs.readFileSync("public/logo.png"), { icone: fs.readFileSync("public/pix/icon_pix_green.jpg"), qrCode: fs.readFileSync("public/pix/qrcode_pix.png") });
 assert.equal(Buffer.from(pdf).subarray(0, 5).toString(), "%PDF-");
 fs.mkdirSync("tmp/pdfs", { recursive: true });
 fs.writeFileSync("tmp/pdfs/orcamento-teste.pdf", pdf);

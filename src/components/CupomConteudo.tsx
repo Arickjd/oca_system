@@ -1,19 +1,17 @@
 import type { Config, Pedido } from "@/lib/types";
 import { formatBRL, formatData } from "@/lib/format";
 import { formasPagamento } from "@/lib/periodoOrcamentos";
+import { chavePix, titularPix } from "@/lib/pix";
 import styles from "./CupomConteudo.module.css";
 
 export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Config }) {
   const finalizado = pedido.status_pagamento === "finalizado";
-  return <article id="cupom-conteudo" className={styles.cupom} aria-label="Prévia do cupom não fiscal de 80 mm">
+  return <article id="cupom-conteudo" className={styles.cupom} aria-label="Prévia do cupom de 80 mm">
     <header className={styles.cabecalho}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt={config.distribuidora_nome} className={styles.logo} />
-      <p className={styles.empresa}>{config.distribuidora_nome}</p>
-      {config.distribuidora_contato && <p>{config.distribuidora_contato}</p>}
       {config.endereco && <p>{config.endereco}</p>}
       <h1>{finalizado ? "RECIBO DE VENDA" : "ORÇAMENTO"}</h1>
-      <p>DOCUMENTO NÃO FISCAL</p>
       <p>Nº {String(pedido.numero).padStart(4, "0")}</p>
       <p>{formatData(pedido.created_at)}</p>
     </header>
@@ -27,7 +25,6 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
       <ol className={styles.itens}>
         {pedido.itens.map((item, index) => <li key={item.id} className={styles.item}>
           <p className={styles.nome}>{index + 1}. {item.produto_nome}</p>
-          {item.modo === "pacote" && <p>Pacote{item.pack_quantidade ? ` com ${item.pack_quantidade} itens` : ""}</p>}
           {(item.desconto_unitario ?? 0) > 0 && <p>Desconto aplicado</p>}
           <div className={styles.linha}>
             <span>{item.quantidade} {item.modo === "pacote" ? "pct" : "un"} × {formatBRL(item.preco_unitario)}</span>
@@ -43,6 +40,17 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
       {finalizado && pedido.pago_em && <p>Pago em: {formatData(pedido.pago_em)}</p>}
     </section>
     {pedido.observacao && <section className={styles.observacao}><h2>OBSERVAÇÃO</h2><p>{pedido.observacao}</p></section>}
-    <footer className={styles.rodape}><p>Este documento não é fiscal.</p><p>Obrigado pela preferência!</p></footer>
+    {!finalizado && <section className={styles.pix} aria-labelledby="cupom-pix">
+      <h2 id="cupom-pix">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/pix/icon_pix_black.jpg" alt="" width="17" height="17" />
+        Pague com Pix
+      </h2>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/pix/qrcode_pix.png" alt="QR Code para pagamento via Pix" className={styles.qrCode} />
+      <p><strong>Chave Pix: {chavePix}</strong></p>
+      <p>{titularPix}</p>
+    </section>}
+    <footer className={styles.rodape}><p>Obrigado pela preferência!</p></footer>
   </article>;
 }

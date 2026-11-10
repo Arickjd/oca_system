@@ -30,6 +30,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const negado = await verificarAcessoApi(); if (negado) return negado;
+  const sessao = await obterSessao();
+  if (!sessao) return NextResponse.json({ error: "Entre novamente." }, { status: 401 });
   const { id } = await params;
   const body = await req.json().catch(() => null);
   if (!body || !["pix", "cartao", "dinheiro"].includes(body.forma_pagamento)) {
@@ -37,7 +39,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   if (!Number.isSafeInteger(body.revisao) || body.revisao < 0) return NextResponse.json({ error: "Atualize a página antes de confirmar o pagamento." }, { status: 400 });
   try {
-    const pedido = await finalizarPagamento(id, body.forma_pagamento as FormaPagamento, body.revisao);
+    const pedido = await finalizarPagamento(id, body.forma_pagamento as FormaPagamento, body.revisao, {
+      id: sessao.usuario.id,
+      nome: sessao.usuario.nome,
+    });
     if (!pedido) {
       const existe = await getPedido(id);
       return NextResponse.json({ error: existe ? "Este orçamento foi alterado ou já foi finalizado. Atualize a página e confira o valor." : "Orçamento não encontrado." }, { status: existe ? 409 : 404 });
