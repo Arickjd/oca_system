@@ -15,6 +15,7 @@ import type {
 // Na Vercel, uma configuração ausente interrompe a operação em vez de perder dados.
 
 const DATA_DIR = path.join(process.cwd(), "data");
+const PEDIDOS_LOCAL = path.join(DATA_DIR, "pedidos.local.json");
 
 async function ensureDir() {
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -26,6 +27,13 @@ export async function readData<T>(file: string, fallback: T): Promise<T> {
     return await postgres.listar<T extends (infer U)[] ? U : never>(file.replace(".json", "")) as T;
   }
   try {
+    if (file === "pedidos.json") {
+      try {
+        return JSON.parse(await fs.readFile(PEDIDOS_LOCAL, "utf8")) as T;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
     return JSON.parse(raw) as T;
   } catch (error) {
@@ -41,7 +49,7 @@ export function writeData(file: string, data: unknown): Promise<void> {
   if (postgres.usarPostgres()) throw new Error("Gravação de arquivos desabilitada com PostgreSQL.");
   const run = writeChain.then(async () => {
     await ensureDir();
-    const dest = path.join(DATA_DIR, file);
+    const dest = file === "pedidos.json" ? PEDIDOS_LOCAL : path.join(DATA_DIR, file);
     const tmp = `${dest}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
     await fs.rename(tmp, dest);
@@ -183,7 +191,7 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
     if (!pedido || (!permitirVenda && pedido.status_pagamento === "finalizado")) return false;
     pedido.excluido_em = new Date().toISOString();
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return true;
@@ -192,16 +200,22 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
   return run;
 }
 
-export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number): Promise<Pedido | undefined> {
+export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number, finalizadoPor?: Pedido["finalizado_por"]): Promise<Pedido | undefined> {
   if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
-  const patch = { status_pagamento: "finalizado" as const, forma_pagamento: forma, pago_em: new Date().toISOString(), status: "concluido" as const };
+  const patch = {
+    status_pagamento: "finalizado" as const,
+    forma_pagamento: forma,
+    finalizado_por: finalizadoPor,
+    pago_em: new Date().toISOString(),
+    status: "concluido" as const,
+  };
   if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch, revisao);
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
     if (!pedido) return undefined;
     Object.assign(pedido, patch, { revisao: (pedido.revisao ?? 0) + 1 });
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return pedido;
@@ -291,7 +305,7 @@ export async function editarPedido(id: string, body: unknown, permitirVenda = fa
       updated_at: new Date().toISOString(), revisao: input.revisao + 1 };
     if (remoto) return postgres.editarPedido(id, patch, input.revisao, permitirVenda);
     Object.assign(anterior, patch);
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return anterior;
@@ -358,7 +372,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   if (remoto) return postgres.inserirPedido(novo);
   pedidos.push(novo);
   await ensureDir();
-  const dest = path.join(DATA_DIR, "pedidos.json");
+  const dest = PEDIDOS_LOCAL;
   await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
   await fs.rename(dest + ".tmp", dest);
   return novo;

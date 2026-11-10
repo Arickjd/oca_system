@@ -55,6 +55,7 @@ export interface Pedido {
   status: PedidoStatus;
   status_pagamento?: "pendente" | "finalizado";
   forma_pagamento?: FormaPagamento;
+  finalizado_por?: Pedido["criado_por"];
   pago_em?: string;
   revisao?: number;
   updated_at?: string;

@@ -15,8 +15,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const pedido = await getPedido(id);
     if (!pedido) return NextResponse.json({ error: "Orçamento não encontrado." }, { status: 404 });
-    const [config, logo] = await Promise.all([getConfig(), readFile(path.join(process.cwd(), "public", "logo.png"))]);
-    const pdf = gerarOrcamentoPdf(pedido, config, logo);
+    const [config, logo, icone, qrCode] = await Promise.all([
+      getConfig(),
+      readFile(path.join(process.cwd(), "public", "logo.png")),
+      readFile(path.join(process.cwd(), "public", "pix", "icon_pix_green.jpg")),
+      readFile(path.join(process.cwd(), "public", "pix", "qrcode_pix.png")),
+    ]);
+    const pdf = gerarOrcamentoPdf(pedido, config, logo, { icone, qrCode });
     return new Response(pdf, { headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": 'attachment; filename="orcamento-' + pedido.numero + '.pdf"',

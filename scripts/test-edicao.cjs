@@ -31,8 +31,12 @@ module.exports = async function testarEdicao(api) {
   assert.equal(concorrentes.filter(Boolean).length, 1);
   assert.equal((await api.getPedido(original.id)).itens.length, 1);
   assert.equal((await api.getPedido(original.id)).valor_total, 25);
-  const venda = await api.finalizarPagamento(original.id, "dinheiro", 2);
-  assert.deepEqual((await api.getPedido(original.id)).criado_por, { id: "jardel", nome: "Jardel" });
+  const finalizador = { id: "jairo", nome: "Jairo" };
+  const venda = await api.finalizarPagamento(original.id, "dinheiro", 2, finalizador);
+  assert.equal(await api.finalizarPagamento(original.id, "pix", venda.revisao, { id: "gisele", nome: "Gisele" }), undefined);
+  const vendaGravada = await api.getPedido(original.id);
+  assert.deepEqual(vendaGravada.criado_por, { id: "jardel", nome: "Jardel" });
+  assert.deepEqual(vendaGravada.finalizado_por, finalizador);
   const edicaoVenda = { ...segunda, revisao: venda.revisao, cliente_nome: "Venda corrigida", itens: [{ ...segunda.itens[0], preco_unitario: 15 }] };
   assert.equal(await api.editarPedido(original.id, edicaoVenda), undefined);
   assert.equal(await api.excluirPedido(original.id), false);
@@ -43,6 +47,7 @@ module.exports = async function testarEdicao(api) {
   assert.equal(vendaEditada.status_pagamento, "finalizado");
   assert.equal(vendaEditada.forma_pagamento, "dinheiro");
   assert.equal(vendaEditada.pago_em, venda.pago_em);
+  assert.deepEqual(vendaEditada.finalizado_por, finalizador);
   assert.equal(vendaEditada.numero, original.numero);
   assert.equal(await api.excluirPedido(original.id, true), true);
   assert.equal(await api.getPedido(original.id), undefined);

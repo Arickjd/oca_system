@@ -30,5 +30,6 @@ next-env.d.ts
 
 # dados temporários de escrita
 /data/*.tmp
+/data/pedidos.local.json
 /tmp/pdfs/
 /tmp/xlsx/

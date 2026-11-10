@@ -39,6 +39,7 @@ export default async function OrcamentoPage({ params }: Params) {
       <div className="p-3 sm:p-6">
         <div id="pagamento" className="no-print mx-auto mb-4 max-w-[210mm] scroll-mt-52">
           <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} />
+          {pedido.status_pagamento === "finalizado" && <p className="mt-2 text-sm text-slate-600">Pagamento confirmado por: {pedido.finalizado_por?.nome ?? "Não informado"}</p>}
         </div>
         {/* Recibo A4 */}
         <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-4 sm:p-10">
@@ -87,7 +88,7 @@ export default async function OrcamentoPage({ params }: Params) {
           )}
 
           {/* Itens */}
-          {pedido.criado_por && <p className="pt-4 text-sm text-slate-500">Responsável: <span className="font-medium text-slate-700">{pedido.criado_por.nome}</span></p>}
+          {pedido.criado_por && <p className="pt-4 text-sm text-slate-500">Orçamento criado por: <span className="font-medium text-slate-700">{pedido.criado_por.nome}</span></p>}
           <section className="py-5">
             <table className="w-full table-fixed text-xs sm:text-sm border-collapse break-words">
               <thead>
