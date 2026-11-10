@@ -40,7 +40,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
       </div>
     </div>
     <GraficoOrcamentos pedidos={pedidos} periodo={periodo} />
-    {admin && <VendasPorUsuario pedidos={todosPedidos} params={params} />}
+    {admin && <VendasPorUsuario pedidos={todosPedidos} periodo={periodo} />}
     <RelatorioOrcamentos key={`${periodo.inicio}-${periodo.fim}`} periodo={periodo} vazio={!pedidos.length} admin={admin} temVendas={resumo.pagos > 0} />
     <ExportarBanco />
   </section>;

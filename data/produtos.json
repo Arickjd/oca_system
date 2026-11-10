@@ -10,7 +10,8 @@
     "imagem_url": "",
     "categoria_id": "9805506b-592a-47ac-9119-ccaf3998df78",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": 17
   },
   {
     "id": "0ba65c58-3ac2-46c8-993d-037ef8474d12",

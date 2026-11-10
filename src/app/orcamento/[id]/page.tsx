@@ -38,7 +38,7 @@ export default async function OrcamentoPage({ params }: Params) {
 
       <div className="p-3 sm:p-6">
         <div id="pagamento" className="no-print mx-auto mb-4 max-w-[210mm] scroll-mt-52">
-          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} />
+          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} valor={pedido.valor_total} />
           {pedido.status_pagamento === "finalizado" && <p className="mt-2 text-sm text-slate-600">Pagamento confirmado por: {pedido.finalizado_por?.nome ?? "Não informado"}</p>}
         </div>
         {/* Recibo A4 */}

@@ -31,11 +31,17 @@ export function EstatisticasVendedores({ grupos, periodo, selecionado }: {
     dias.push({ data, total: (valores?.total ?? 0) / 100, quantidade: valores?.quantidade ?? 0 });
   }
   const pico = dias.reduce((melhor, dia) => dia.total > melhor.total ? dia : melhor, dias[0]);
-  const maior = Math.max(1, ...dias.map(dia => dia.total));
+  // Períodos longos mostram apenas os dias com vendas, como no gráfico dos relatórios.
+  const serie = dias.length > 92 ? dias.filter(dia => dia.quantidade > 0) : dias;
+  const maior = Math.max(1, ...serie.map(dia => dia.total));
   const totalEquipe = grupos.reduce((soma, grupo) => soma + Math.round(grupo.total * 100), 0) / 100;
   const porcentagem = (valor: number) => valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
   const caminho = (id?: string) => {
-    const consulta = new URLSearchParams({ comissao: periodo.tipo });
+    const consulta = new URLSearchParams({ periodo: periodo.tipo });
+    if (periodo.tipo === "personalizado") {
+      consulta.set("inicio", periodo.inicio);
+      consulta.set("fim", periodo.fim);
+    }
     if (id !== undefined) consulta.set("vendedor", id);
     return "/relatorios/vendas-por-usuario?" + consulta;
   };
@@ -47,7 +53,11 @@ export function EstatisticasVendedores({ grupos, periodo, selecionado }: {
   ];
   return <div className="space-y-6">
     <form action="/relatorios/vendas-por-usuario" className="flex flex-wrap items-end gap-2">
-      <input type="hidden" name="comissao" value={periodo.tipo} />
+      <input type="hidden" name="periodo" value={periodo.tipo} />
+      {periodo.tipo === "personalizado" && <>
+        <input type="hidden" name="inicio" value={periodo.inicio} />
+        <input type="hidden" name="fim" value={periodo.fim} />
+      </>}
       <label className="min-w-0 flex-1 text-sm font-semibold">Usuário
         <select key={selecionado ?? "todos"} name="vendedor" defaultValue={selecionado ?? "todos"} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2.5">
           <option value="todos">Toda a equipe</option>
@@ -65,21 +75,21 @@ export function EstatisticasVendedores({ grupos, periodo, selecionado }: {
     </div>
     <section className="rounded-xl border border-slate-200 p-4">
       <h3 className="font-bold">Distribuição diária das vendas</h3>
-      <p className="mt-1 text-xs text-slate-500">{periodo.tipo === "mes" ? "Do início do mês até hoje, incluindo dias sem vendas." : "Vendas de hoje."} Valores em reais.</p>
+      <p className="mt-1 text-xs text-slate-500">{dataCurta(periodo.inicio)} a {dataCurta(periodo.fim)}, {dias.length > 92 ? "somente dias com vendas" : "incluindo dias sem vendas"}. Valores em reais.</p>
       {!vendas.length ? <p className="py-8 text-center text-sm text-slate-500">Nenhuma venda finalizada neste período para esta seleção.</p> : <>
         <svg viewBox="0 0 640 210" role="img" aria-label="Valor de vendas por dia. Consulte os valores na tabela abaixo." className="mt-4 w-full">
           <text x="0" y="12" fontSize="12" fill="#64748b">{formatBRL(maior)}</text>
           <line x1="0" x2="640" y1="32" y2="32" stroke="#e2e8f0" strokeDasharray="4 4" />
           <line x1="0" x2="640" y1="180" y2="180" stroke="#cbd5e1" />
-          {dias.map((dia, index) => {
-            const passo = 640 / dias.length;
+          {serie.map((dia, index) => {
+            const passo = 640 / serie.length;
             const largura = Math.min(40, passo * 0.65);
             const altura = dia.total / maior * 140;
             const x = passo * (index + 0.5);
             return <g key={dia.data}>
               <title>{`${dataCurta(dia.data)} · ${formatBRL(dia.total)} · ${dia.quantidade} vendas`}</title>
               <rect x={x - largura / 2} y={180 - Math.max(altura, 2)} width={largura} height={Math.max(altura, 2)} rx="2" fill={dia.total ? "#0f766e" : "#e2e8f0"} />
-              {(dias.length <= 10 || index % 5 === 0 || index === dias.length - 1) && <text x={x} y="200" textAnchor="middle" fontSize="12" fill="#64748b">{dia.data.slice(8)}</text>}
+              {(serie.length <= 10 || index % 5 === 0 || index === serie.length - 1) && <text x={x} y="200" textAnchor="middle" fontSize="12" fill="#64748b">{dia.data.slice(8)}</text>}
             </g>;
           })}
         </svg>
