@@ -89,13 +89,14 @@ exigem migração do banco.
 
 - `/orcamentos` mostra somente pagamentos pendentes, com Hoje e seleção de outros dias com pendências e respectivas quantidades.
 - `/vendas` mostra somente pagamentos finalizados, com Hoje, Últimos 7 dias e intervalo personalizado.
-- `/relatorios` concentra indicadores, gráfico diário de quantidades e geração dos PDFs. Pendentes aparecem em âmbar; vendas finalizadas em verde. Os valores e o gráfico usam o mesmo filtro dos PDFs.
+- `/relatorios` concentra indicadores, gráfico diário de quantidades e geração dos PDFs. Pendentes aparecem em âmbar; vendas finalizadas em verde. Os valores e o gráfico usam o mesmo filtro dos PDFs. O mesmo filtro de período vale para Vendas por usuário e para o detalhamento em `/relatorios/vendas-por-usuario`, sem seleção de período separada.
 - Os filtros continuam usando a data de criação do orçamento no horário de Brasília, inclusive em Vendas. Últimos 7 dias inclui hoje e os seis dias anteriores.
 - O gráfico inclui dias sem movimento em intervalos de até 92 dias; períodos maiores mostram os dias com registros. Cada orçamento é contado uma vez, conforme a situação atual do pagamento.
 - O intervalo personalizado inclui as duas datas, considerando a criação do orçamento no fuso America/Sao_Paulo.
 - Os cartões de resumo e PDFs usam o mesmo período. Os relatórios incluem todos os orçamentos não excluídos, separando pendentes e finalizados; não são um extrato por data de recebimento.
 - PDF resumido: uma linha por orçamento. PDF detalhado: todos os itens registrados em cada orçamento, inclusive produtos removidos do catálogo depois da venda.
 - Editar e Efetivar aparecem somente para pendentes. A edição preserva número, data e custos históricos dos itens existentes; novos itens usam o custo atual do catálogo. Não modifica o catálogo nem o carrinho.
+- Na tela do orçamento, o card de pagamento pendente mostra o valor e as formas Pix, Cartão e Dinheiro. Tocar em uma delas efetiva a venda imediatamente, sem etapa de confirmação; a tela passa a exibir a forma escolhida e quem confirmou. A lista `/orcamentos` oferece as mesmas três formas em cada card pendente, ao lado de Excluir e Editar, efetivando sem abrir o orçamento. Confirmações sobre versões antigas continuam recusadas com aviso para recarregar a página.
 - Edições concorrentes e confirmações de pagamento sobre versões antigas são recusadas. Recarregue a página para conferir os dados atuais.
 - Não é necessária migração para estes recursos: os novos campos de revisão ficam nos registros JSONB existentes.
 - `npm run test:orcamentos` valida períodos e gera PDFs de teste em `tmp/pdfs/`. Os testes de persistência também verificam edição e pagamento concorrentes.

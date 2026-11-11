@@ -3,6 +3,7 @@ import type { Pedido } from "@/lib/types";
 import { formatBRL, formatData } from "@/lib/format";
 import { diaLocal, dataCurta, formasPagamento } from "@/lib/periodoOrcamentos";
 import { ExcluirOrcamento } from "./ExcluirOrcamento";
+import { EfetivarPagamento } from "./EfetivarPagamento";
 
 export function ListaOrcamentos({ pedidos, retorno, vendas = false, admin = false }: { pedidos: Pedido[]; retorno: string; vendas?: boolean; admin?: boolean }) {
   const grupos = new Map<string, Pedido[]>();
@@ -37,7 +38,7 @@ export function ListaOrcamentos({ pedidos, retorno, vendas = false, admin = fals
         <div className="mt-4 flex flex-wrap items-start gap-2 border-t border-slate-100 pt-3">
           <ExcluirOrcamento id={pedido.id} numero={pedido.numero} venda={vendas} />
           <Link href={`/orcamento/${pedido.id}/editar?retorno=${encodeURIComponent(retorno)}`} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium">Editar</Link>
-          {pedido.status_pagamento !== "finalizado" && <Link href={`/orcamento/${pedido.id}#pagamento`} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white">Efetivar</Link>}
+          {pedido.status_pagamento !== "finalizado" && <EfetivarPagamento id={pedido.id} numero={pedido.numero} revisao={pedido.revisao ?? 0} />}
         </div>
       )}
     </article>)}

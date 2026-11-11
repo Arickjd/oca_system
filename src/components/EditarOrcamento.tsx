@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Pedido, Produto } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 
-type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string; preco_original: number };
+type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string; preco_original: number; custo_unitario: number | null };
 const campo = "mt-1 w-full min-w-0 rounded-xl border border-slate-300 bg-white p-2.5 text-sm";
 
 export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido; produtos: Produto[]; retorno: string }) {
@@ -15,7 +15,8 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
   const [telefone, setTelefone] = useState(pedido.telefone);
   const [observacao, setObservacao] = useState(pedido.observacao);
   const [itens, setItens] = useState<Linha[]>(pedido.itens.map(it => ({ chave: it.id, id: it.id, produto_id: it.produto_id,
-    produto_nome: it.produto_nome, modo: it.modo, pack_quantidade: String(it.pack_quantidade ?? 1), quantidade: String(it.quantidade), preco_unitario: String(it.preco_unitario), preco_original: it.preco_original ?? it.preco_unitario })));
+    produto_nome: it.produto_nome, modo: it.modo, pack_quantidade: String(it.pack_quantidade ?? 1), quantidade: String(it.quantidade), preco_unitario: String(it.preco_unitario), preco_original: it.preco_original ?? it.preco_unitario,
+    custo_unitario: typeof it.custo_unitario === "number" ? it.custo_unitario : null })));
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -24,7 +25,8 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
   const total = itens.reduce((s, it) => s + Math.round(Number(it.preco_unitario) * Number(it.quantidade) * 100), 0) / 100;
   function alterar(chave: string, patch: Partial<Linha>) { setItens(lista => lista.map(it => it.chave === chave ? { ...it, ...patch } : it)); }
   function adicionar(p: Produto) {
-    setItens(lista => [...lista, { chave: crypto.randomUUID(), produto_id: p.id, produto_nome: p.nome, modo: "pacote", pack_quantidade: String(p.pack_quantidade), quantidade: "1", preco_unitario: String(p.preco_pack), preco_original: p.preco_pack }]);
+    setItens(lista => [...lista, { chave: crypto.randomUUID(), produto_id: p.id, produto_nome: p.nome, modo: "pacote", pack_quantidade: String(p.pack_quantidade), quantidade: "1", preco_unitario: String(p.preco_pack), preco_original: p.preco_pack,
+      custo_unitario: typeof p.custo_pack === "number" && p.custo_pack > 0 ? p.custo_pack : null }]);
     setBusca("");
   }
   async function salvar(e: FormEvent) {
@@ -56,12 +58,18 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
       </section>
       <section className="flex flex-col gap-3"><h2 className="font-semibold">Produtos {venda ? "da venda" : "do orçamento"} · {itens.length}</h2>
         {itens.map((it, index) => <article key={it.chave} className="rounded-2xl border bg-white p-4">
-          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Item {index + 1} · {it.modo === "pacote" ? "Pacote" : "Unidade"}</h3><button type="button" onClick={() => setItens(lista => lista.filter(i => i.chave !== it.chave))} className="rounded-lg px-3 py-2 text-sm text-red-700" aria-label={`Remover ${it.produto_nome}`}>Remover</button></div>
+          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">Item {index + 1} · {it.modo === "pacote" ? "Pacote" : "Unidade"}{it.modo === "pacote" ? ` · ${Number(it.pack_quantidade) || 1} itens/pacote` : ""}</h3><button type="button" onClick={() => setItens(lista => lista.filter(i => i.chave !== it.chave))} className="rounded-lg px-3 py-2 text-sm text-red-700" aria-label={`Remover ${it.produto_nome}`}>Remover</button></div>
           <label className="block text-sm">Produto<input required value={it.produto_nome} onChange={e => alterar(it.chave, { produto_nome: e.target.value })} className={campo} /></label>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <label className="min-w-0 text-sm">Quantidade<input required type="number" min="1" step="1" value={it.quantidade} onChange={e => alterar(it.chave, { quantidade: e.target.value })} className={campo} /></label>
             <label className="min-w-0 text-sm">Valor da venda (R$)/{it.modo === "pacote" ? "pacote" : "unidade"}<input required type="number" min="0" step="0.01" inputMode="decimal" value={it.preco_unitario} onChange={e => alterar(it.chave, { preco_unitario: e.target.value })} className={campo} /></label>
-            {it.modo === "pacote" && <label className="min-w-0 text-sm">Itens por pacote<input required type="number" min="1" step="1" value={it.pack_quantidade} onChange={e => alterar(it.chave, { pack_quantidade: e.target.value })} className={campo} /></label>}
+            <div className="min-w-0 text-sm">
+              <span className="block text-slate-600">Valor de compra</span>
+              <p title="Custo registrado no orçamento. Não pode ser alterado." className="mt-1 flex min-h-11 items-center rounded-xl border border-slate-200 bg-slate-100 px-2.5 font-semibold tabular-nums text-slate-700">
+                {it.custo_unitario === null ? "---" : formatBRL(it.custo_unitario)}
+                <span className="ml-1 text-xs font-normal text-slate-500">/{it.modo === "pacote" ? "pacote" : "unidade"}</span>
+              </p>
+            </div>
           </div>
           {it.preco_unitario !== "" && Math.round((it.preco_original - Number(it.preco_unitario)) * 100) > 0 && <p className="mt-3 text-xs font-medium text-emerald-800">Desconto aplicado</p>}
           <p className="mt-3 text-right text-sm">Subtotal: <strong>{formatBRL(Number(it.preco_unitario) * Number(it.quantidade))}</strong></p>

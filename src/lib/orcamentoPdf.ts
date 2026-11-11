@@ -4,6 +4,16 @@ import type { Pedido, Config } from "./types";
 import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
 
+export function descontoTotalPedido(pedido: Pedido) {
+  const centavos = pedido.itens.reduce((soma, item) => {
+    const desconto = typeof item.desconto_unitario === "number"
+      ? item.desconto_unitario
+      : Math.max(0, (item.preco_original ?? item.preco_unitario) - item.preco_unitario);
+    return soma + Math.round(desconto * 100) * item.quantidade;
+  }, 0);
+  return centavos / 100;
+}
+
 export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Array, pix: { icone: Uint8Array; qrCode: Uint8Array }) {
   const doc = new jsPDF({ format: "a4", unit: "mm", compress: true });
   const margin = 15;
@@ -47,7 +57,15 @@ export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Arr
   // Deixa espaço para o bloco Pix no rodapé da última página.
   const topoPix = 236;
   const limiteConteudo = topoPix - 5;
-  if (y > limiteConteudo - (pedido.observacao ? 9 : 0)) { doc.addPage(); y = 20; }
+  const descontoTotal = descontoTotalPedido(pedido);
+  const espacoDesconto = descontoTotal > 0 ? 7 : 0;
+  if (y > limiteConteudo - espacoDesconto - (pedido.observacao ? 9 : 0)) { doc.addPage(); y = 20; }
+  if (descontoTotal > 0) {
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(4, 120, 87);
+    doc.text("Desconto total aplicado: " + formatBRL(descontoTotal), 195, y, { align: "right" });
+    y += 7;
+  }
+  doc.setTextColor(15, 23, 42);
   doc.setFont("helvetica", "bold").setFontSize(16);
   doc.text("Total: " + formatBRL(pedido.valor_total), 195, y, { align: "right" });
   y += 5;
