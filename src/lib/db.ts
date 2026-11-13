@@ -103,6 +103,61 @@ export async function criarCategoria(nome: string): Promise<Categoria> {
 
 /* ------------------------------ Produtos ------------------------------ */
 
+// Toda venda sem categoria escolhida entra em "Outros"; a categoria é criada se faltar.
+export async function categoriaOutros(): Promise<Categoria> {
+  const categorias = await getCategorias();
+  const existente = categorias.find(c => c.nome.localeCompare("Outros", "pt-BR", { sensitivity: "base" }) === 0);
+  if (existente) return existente;
+  return criarCategoria("Outros");
+}
+
+export class CategoriaPadrao extends Error {}
+
+function ehCategoriaPadrao(categoria: { nome: string }) {
+  return categoria.nome.localeCompare("Outros", "pt-BR", { sensitivity: "base" }) === 0;
+}
+
+// Exclui a categoria e move os produtos dela (inclusive excluídos) para "Outros".
+export async function excluirCategoria(id: string): Promise<boolean> {
+  const categorias = await getCategorias();
+  const alvo = categorias.find(c => c.id === id);
+  if (!alvo) return false;
+  if (ehCategoriaPadrao(alvo)) throw new CategoriaPadrao("A categoria Outros é o destino padrão e não pode ser excluída.");
+
+  if (postgres.usarPostgres()) {
+    let outros = categorias.find(ehCategoriaPadrao);
+    if (!outros) outros = await postgres.inserir<Categoria>("categorias", {
+      id: randomUUID(), nome: "Outros", ativo: true, created_at: new Date().toISOString(),
+    });
+    await postgres.moverProdutosParaCategoria(id, outros.id);
+    await postgres.remover("categorias", id);
+    return true;
+  }
+
+  const run = writeChain.then(async () => {
+    const arquivoCategorias = path.join(DATA_DIR, "categorias.json");
+    const arquivoProdutos = path.join(DATA_DIR, "produtos.json");
+    const todas: Categoria[] = JSON.parse(await fs.readFile(arquivoCategorias, "utf8"));
+    const produtos: Produto[] = JSON.parse(await fs.readFile(arquivoProdutos, "utf8"));
+    let outros = todas.find(ehCategoriaPadrao);
+    if (!outros) {
+      outros = { id: randomUUID(), nome: "Outros", ativo: true, created_at: new Date().toISOString() };
+      todas.push(outros);
+    }
+    let moveu = false;
+    for (const produto of produtos) if (produto.categoria_id === id) { produto.categoria_id = outros.id; moveu = true; }
+    if (moveu) {
+      await fs.writeFile(`${arquivoProdutos}.tmp`, JSON.stringify(produtos, null, 2), "utf8");
+      await fs.rename(`${arquivoProdutos}.tmp`, arquivoProdutos);
+    }
+    await fs.writeFile(`${arquivoCategorias}.tmp`, JSON.stringify(todas.filter(c => c.id !== id), null, 2), "utf8");
+    await fs.rename(`${arquivoCategorias}.tmp`, arquivoCategorias);
+    return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 export async function getProdutos(): Promise<Produto[]> {
   return (await readData<Produto[]>("produtos.json", [])).filter(p => !p.excluido_em);
 }

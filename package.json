@@ -16,6 +16,7 @@
     "start": "next start",
     "seed": "node scripts/seed.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-database.mjs",
+    "db:mesclar-categorias": "node --env-file-if-exists=.env.local scripts/mesclar-diversos-em-outros.mjs",
     "test:postgres": "node scripts/test-postgres.cjs",
     "test:custos": "node scripts/test-custos.cjs",
     "test:orcamentos": "node scripts/test-orcamentos.cjs",

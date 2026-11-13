@@ -28,7 +28,7 @@ export function SiteHeader({ usuario, admin }: { usuario: string; admin: boolean
         </nav>
         <div className="order-2 flex items-center justify-self-end gap-2 min-[400px]:order-none">
           <Link
-            href="/produtos?categoria=9805506b-592a-47ac-9119-ccaf3998df78"
+            href="/produtos"
             aria-label="Montar pedido"
             title="Montar pedido"
             className="inline-flex shrink-0 items-center rounded-full bg-amber-100 p-2 text-amber-950 transition hover:bg-amber-200 active:scale-95"

@@ -3,6 +3,7 @@ import { getPedidos } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
 import { FiltroOrcamentos } from "@/components/FiltroOrcamentos";
 import { RelatorioOrcamentos } from "@/components/RelatorioOrcamentos";
+import { RelatorioProdutos } from "@/components/RelatorioProdutos";
 import { GraficoOrcamentos } from "@/components/GraficoOrcamentos";
 import { ExportarBanco } from "@/components/ExportarBanco";
 import { resolverPeriodo, filtrarPeriodo, resumoPeriodo, dataCurta } from "@/lib/periodoOrcamentos";
@@ -42,6 +43,7 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
     <GraficoOrcamentos pedidos={pedidos} periodo={periodo} />
     {admin && <VendasPorUsuario pedidos={todosPedidos} periodo={periodo} />}
     <RelatorioOrcamentos key={`${periodo.inicio}-${periodo.fim}`} periodo={periodo} vazio={!pedidos.length} admin={admin} temVendas={resumo.pagos > 0} />
+    {admin && <RelatorioProdutos />}
     <ExportarBanco />
   </section>;
 }
