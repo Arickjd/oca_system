@@ -68,6 +68,16 @@ Cada produto possui somente **preço de atacado por pacote**. Depois de adicion�
 o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
 
+A antiga categoria **Diversos** foi incorporada por **Outros**, e todo produto
+cadastrado sem categoria é gravado em **Outros** — não existe mais "Sem categoria".
+Em bases já publicadas, `npm run db:mesclar-categorias` aplica a mesma regra
+(JSON local ou PostgreSQL, conforme `DATABASE_URL`).
+
+Em **Gerenciar produtos**, o botão **Editar categorias** abre a lista com a
+quantidade de produtos de cada categoria e permite criar ou excluir. Excluir uma
+categoria move os produtos dela (inclusive os excluídos) para **Outros**, que é o
+destino padrão e não pode ser excluída.
+
 O preço negociado no carrinho vale somente para aquela venda: não altera o preço
 global do produto. Nome e itens por pacote continuam atualizando o catálogo.
 Cada item do orçamento guarda o preço original e o desconto por pacote/unidade;
@@ -80,7 +90,7 @@ exigem migração do banco.
 
 ## Histórico, relatórios e edição de orçamentos
 
-- Na consulta individual, **Imprimir cupom** abre `/orcamento/[id]/cupom`, com prévia para bobina de 80 mm. A altura de impressão acompanha o conteúdo. Selecione a impressora e o papel de 80 mm, escala 100%, sem cabeçalho/rodapé do navegador. O documento é não fiscal, inclui descontos e pagamento e não exibe custo ou lucro. O download e compartilhamento do PDF A4 continuam disponíveis na consulta principal.
+- Na consulta individual, **Ver cupom** abre `/orcamento/[id]/cupom`, com prévia para bobina de 80 mm. A altura de impressão acompanha o conteúdo. Selecione a impressora e o papel de 80 mm, escala 100%, sem cabeçalho/rodapé do navegador. A página também oferece **Compartilhar cupom**, que gera um PDF de 80 mm e o envia pelo compartilhamento do sistema (WhatsApp e afins); sem suporte ao compartilhamento de arquivos, o botão baixa o PDF e orienta a anexá-lo. O documento é não fiscal, inclui descontos e pagamento e não exibe custo ou lucro, tanto para orçamentos quanto para vendas. O download e compartilhamento do PDF A4 continuam disponíveis na consulta principal.
 
 - Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.
 - A exportação inclui registros excluídos logicamente, custos e responsáveis. IDs preservam os vínculos entre abas. A leitura PostgreSQL usa uma única instrução para manter consistência entre registros e contadores; no modo local, aguarda as escritas pendentes.
@@ -95,6 +105,7 @@ exigem migração do banco.
 - O intervalo personalizado inclui as duas datas, considerando a criação do orçamento no fuso America/Sao_Paulo.
 - Os cartões de resumo e PDFs usam o mesmo período. Os relatórios incluem todos os orçamentos não excluídos, separando pendentes e finalizados; não são um extrato por data de recebimento.
 - PDF resumido: uma linha por orçamento. PDF detalhado: todos os itens registrados em cada orçamento, inclusive produtos removidos do catálogo depois da venda.
+- Em `/relatorios`, o administrador baixa o **PDF do catálogo de produtos**: todos os produtos cadastrados, com preço de compra, preço de venda e margem, agrupados por categoria e em ordem alfabética. É um documento interno (contém custo), não usa o filtro de período e a rota responde 403 para operadores.
 - Editar e Efetivar aparecem somente para pendentes. A edição preserva número, data e custos históricos dos itens existentes; novos itens usam o custo atual do catálogo. Não modifica o catálogo nem o carrinho.
 - Na tela do orçamento, o card de pagamento pendente mostra o valor e as formas Pix, Cartão e Dinheiro. Tocar em uma delas efetiva a venda imediatamente, sem etapa de confirmação; a tela passa a exibir a forma escolhida e quem confirmou. A lista `/orcamentos` oferece as mesmas três formas em cada card pendente, ao lado de Excluir e Editar, efetivando sem abrir o orçamento. Confirmações sobre versões antigas continuam recusadas com aviso para recarregar a página.
 - Edições concorrentes e confirmações de pagamento sobre versões antigas são recusadas. Recarregue a página para conferir os dados atuais.

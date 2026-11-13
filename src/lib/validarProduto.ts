@@ -1,4 +1,4 @@
-import { getCategorias } from "./db";
+import { categoriaOutros, getCategorias } from "./db";
 
 export async function validarProduto(body: unknown) {
   if (!body || typeof body !== "object") throw new Error("Dados inválidos.");
@@ -20,9 +20,14 @@ export async function validarProduto(body: unknown) {
     patch.custo_pack = b.custo_pack === null ? null : Math.round((b.custo_pack as number) * 100) / 100 || null;
   }
   if (b.categoria_id !== undefined) {
-    if (typeof b.categoria_id !== "string" || (b.categoria_id && !(await getCategorias()).some(c => c.id === b.categoria_id)))
-      throw new Error("Categoria inválida.");
-    patch.categoria_id = b.categoria_id;
+    if (typeof b.categoria_id !== "string") throw new Error("Categoria inválida.");
+    if (!b.categoria_id) {
+      // Sem categoria escolhida, o produto entra em "Outros" (criada se ainda não existir).
+      patch.categoria_id = (await categoriaOutros()).id;
+    } else {
+      if (!(await getCategorias()).some(c => c.id === b.categoria_id)) throw new Error("Categoria inválida.");
+      patch.categoria_id = b.categoria_id;
+    }
   }
   return patch;
 }

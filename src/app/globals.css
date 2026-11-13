@@ -31,6 +31,13 @@ a {
   scrollbar-width: none;
 }
 
+/* A busca já tem botão de limpar próprio; remove o "x" nativo do navegador. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ------------------------- Impressão do recibo ------------------------- */
 @media print {
   .no-print {

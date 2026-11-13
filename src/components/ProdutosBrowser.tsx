@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Categoria, Produto } from "@/lib/types";
 import { ProdutoCard } from "./ProdutoCard";
 
@@ -15,6 +15,27 @@ export function ProdutosBrowser({
 }) {
   const [busca, setBusca] = useState("");
   const [catId, setCatId] = useState(categoriaInicial);
+  const [pesquisando, setPesquisando] = useState(false);
+  const [alturaHeader, setAlturaHeader] = useState(0);
+
+  // O link "+" do cabeçalho aponta para /produtos sem categoria: ao mudar a URL,
+  // o filtro volta para "Todas" mesmo que a página já estivesse aberta.
+  useEffect(() => setCatId(categoriaInicial), [categoriaInicial]);
+
+  // O cabeçalho é sticky e muda de altura conforme a largura; a barra fixa precisa
+  // encostar exatamente abaixo dele, inclusive no celular.
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+    const medir = () => setAlturaHeader(header.getBoundingClientRect().height);
+    medir();
+    const observador = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(medir);
+    observador?.observe(header);
+    window.addEventListener("resize", medir);
+    return () => { observador?.disconnect(); window.removeEventListener("resize", medir); };
+  }, []);
+
+  const buscando = pesquisando || busca.trim().length > 0;
 
   const nomeCategoria = useMemo(() => {
     const m = new Map(categorias.map((c) => [c.id, c.nome]));
@@ -30,28 +51,36 @@ export function ProdutosBrowser({
     });
   }, [produtos, busca, catId]);
 
+  const fixo = { top: alturaHeader || undefined };
+
   return (
     <div className="flex flex-col">
-      {/* Navegação horizontal de categorias (fixa sob o header) */}
-      <div className="sticky top-14 z-20 -mx-3 px-3 py-2 bg-slate-100/95 backdrop-blur border-b border-slate-200">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          <Chip ativo={catId === ""} onClick={() => setCatId("")}>
-            Todas
-          </Chip>
-          {categorias.map((c) => (
-            <Chip
-              key={c.id}
-              ativo={catId === c.id}
-              onClick={() => setCatId(c.id)}
-            >
-              {c.nome}
+      {/* Categorias: somem enquanto a busca está em uso, para sobrar tela para os produtos. */}
+      {!buscando && (
+        <div className="sticky top-14 z-20 -mx-3 px-3 py-2 bg-slate-100/95 backdrop-blur border-b border-slate-200" style={fixo}>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            <Chip ativo={catId === ""} onClick={() => setCatId("")}>
+              Todas
             </Chip>
-          ))}
+            {categorias.map((c) => (
+              <Chip
+                key={c.id}
+                ativo={catId === c.id}
+                onClick={() => setCatId(c.id)}
+              >
+                {c.nome}
+              </Chip>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="pt-3 flex flex-col gap-4">
-        {/* Busca */}
+      <div
+        className={buscando
+          ? "sticky z-30 -mx-3 px-3 py-2 bg-slate-100/95 backdrop-blur border-b border-slate-200"
+          : "pt-3"}
+        style={buscando ? fixo : undefined}
+      >
         <div className="relative">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -67,20 +96,47 @@ export function ProdutosBrowser({
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
+            onFocus={() => setPesquisando(true)}
+            onBlur={() => setPesquisando(false)}
+            type="search"
             inputMode="search"
+            enterKeyHint="search"
+            autoComplete="off"
             placeholder="Buscar produto..."
-            className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400"
+            className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-11 py-2.5 text-sm outline-none focus:border-slate-400"
           />
+          {busca && (
+            <button
+              type="button"
+              aria-label="Limpar busca"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setBusca("")}
+              className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
+            </button>
+          )}
         </div>
-
-        <div>
-          <h1 className="text-lg font-bold text-slate-900">
-            {catId ? nomeCategoria(catId) ?? "Produtos" : "Todos os produtos"}
-          </h1>
-          <p className="text-sm text-slate-500">
-            {filtrados.length} produto(s)
+        {buscando && (
+          <p className="mt-1 text-xs text-slate-500" role="status">
+            {filtrados.length} produto(s){catId ? ` · ${nomeCategoria(catId) ?? ""}` : ""}
           </p>
-        </div>
+        )}
+      </div>
+
+      <div className="pt-3 flex flex-col gap-4">
+        {!buscando && (
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">
+              {catId ? nomeCategoria(catId) ?? "Produtos" : "Todos os produtos"}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {filtrados.length} produto(s)
+            </p>
+          </div>
+        )}
 
         {filtrados.length === 0 ? (
           <div className="text-center py-16 text-slate-400 text-sm">
