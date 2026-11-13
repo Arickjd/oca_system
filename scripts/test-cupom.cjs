@@ -25,7 +25,7 @@ const pedido = {
 const config = { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "Contato", endereco: "Endereço de teste" };
 const render = p => renderToStaticMarkup(React.createElement(CupomConteudo, { pedido: p, config }));
 const html = render(pedido);
-for (const texto of ["80 mm", "ORÇAMENTO", "Pagamento pendente", "Pague com Pix", "Chave Pix: 12.110.806/0001-11", "J M Jesus Reis", "/pix/icon_pix_black.jpg", "/pix/qrcode_pix.png", "Responsável:", "Jardel", "Desconto aplicado", "80,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
+for (const texto of ["80 mm", "ORÇAMENTO", "Pagamento pendente", "Pague com Pix", "Chave Pix: 12.110.806/0001-11", "J M Jesus Reis", "/pix/icon_pix_black.jpg", "/pix/qrcode_pix.png", "alt=\"QR Code para pagamento via Pix\"", "qrCode", "Responsável:", "Jardel", "Desconto aplicado", "80,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
 for (const texto of ["DOCUMENTO NÃO FISCAL", "Este documento não é fiscal.", "Pacote com 100 itens", ">OCA Distribuidora<", ">Contato<"]) assert.ok(!html.includes(texto), texto);
 for (const texto of ["Valor Original:", "Valor final:", "Desconto total", "40,00"]) assert.ok(!html.includes(texto), texto);
 for (const texto of ["lucro", "custo", "9876", "9.876", "12345", "12.345", "<script>"]) assert.ok(!html.toLowerCase().includes(texto), texto);
@@ -37,6 +37,6 @@ for (const [forma, nome] of [["pix", "Pix"], ["cartao", "Cartão"], ["dinheiro",
   for (const texto of ["RECIBO DE VENDA", "Pagamento finalizado", nome, "Pago em:"]) assert.ok(pago.includes(texto));
   assert.ok(!pago.includes("Pagamento pendente"));
   assert.ok(!pago.includes("Chave Pix:"));
-  assert.ok(!pago.includes("/pix/qrcode_pix.png"));
+  assert.ok(!pago.includes("QR Code para pagamento"));
 }
 console.log("OK: cupom pendente/finalizado, descontos, valores, responsável, formas de pagamento e ausência de custo/lucro.");
