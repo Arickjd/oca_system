@@ -6,10 +6,10 @@
 
 .cupom {
   box-sizing: border-box;
-  width: 80mm;
+  width: 72mm;
   max-width: 100%;
   margin: 20px auto 0;
-  padding: 3mm;
+  padding: 2mm;
   background: #fff;
   color: #000;
   box-shadow: 0 3px 16px #0f172a15;
@@ -61,12 +61,12 @@
 }
 .rodape { text-align: center; break-inside: avoid; }
 
-@page cupom80 {
-  size: 80mm 297mm;
-  margin: 0;
-}
+/* A página é injetada por CupomAcoes no momento de imprimir, com o tamanho
+   aceito pelo driver da impressora. */
 
 @media print {
-  .pagina { page: cupom80; min-height: 0; padding: 0; background: #fff; }
-  .cupom { width: 80mm; max-width: none; margin: 0; box-shadow: none; }
+  .pagina { min-height: 0; padding: 0; background: #fff; }
+  /* O driver da TM-T20X oferece as formas 80 x 297 mm e 80 x 3276 mm, ambas
+     com 71,9 mm de largura útil. A página usa 72 mm para não haver reescala. */
+  .cupom { width: 72mm; max-width: none; margin: 0; box-shadow: none; }
 }
