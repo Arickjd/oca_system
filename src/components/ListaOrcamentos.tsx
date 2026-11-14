@@ -37,14 +37,14 @@ export function ListaOrcamentos({ pedidos, retorno, vendas = false, admin = fals
       return <article key={pedido.id} className="rounded-2xl border border-slate-200 bg-white p-3">
         <Link href={`/orcamento/${pedido.id}`} className="flex flex-col gap-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-slate-900">
           <div className="flex items-start justify-between gap-3">
-            <strong className="text-sm">{vendas ? "Venda" : "Orçamento"} #{pedido.numero}</strong>
-            <div className="text-right leading-tight">
+            <strong className="min-w-0 truncate text-sm text-slate-900">{pedido.cliente_nome || "Cliente não informado"}</strong>
+            <div className="shrink-0 text-right leading-tight">
               <strong className="text-sm tabular-nums">{formatBRL(pedido.valor_total)}</strong>
               <p className={`text-[11px] ${pedido.lucro_bruto == null ? "text-slate-500" : pedido.lucro_bruto < 0 ? "text-red-700" : "text-emerald-700"}`}>Lucro bruto: {pedido.lucro_bruto == null ? "---" : formatBRL(pedido.lucro_bruto)}</p>
             </div>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="min-w-0 truncate text-sm text-slate-800">{pedido.cliente_nome || "Cliente não informado"}</span>
+            <span className="text-xs text-slate-600">{vendas ? "Venda" : "Orçamento"} #{pedido.numero}</span>
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${vendas ? "bg-sky-100 text-sky-900" : parcial ? "bg-amber-200 text-amber-950" : "bg-amber-100 text-amber-800"}`}>
               {vendas ? `Finalizado${pedido.forma_pagamento ? ` · ${formasPagamento[pedido.forma_pagamento]}` : ""}` : parcial ? "Recebimento parcial" : "Pagamento pendente"}
             </span>
