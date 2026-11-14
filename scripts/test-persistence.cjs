@@ -2,23 +2,17 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
-const Module = require("node:module");
-const ts = require("typescript");
+const { criarLoader } = require("./load-ts.cjs");
 
 async function main() {
   const root = process.cwd();
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "oca-test-"));
   try {
-    const source = await fs.readFile(path.join(root, "src/lib/db.ts"), "utf8");
     process.chdir(temp);
     await fs.mkdir("data");
     await fs.writeFile("data/produtos.json", "[]");
-    const mod = new Module(path.join(root, "src/lib/db.cjs"), module);
-    mod.filename = path.join(root, "src/lib/db.cjs");
-    mod.paths = module.paths;
-    mod.require = name => name === "./postgres" ? { usarPostgres: () => false } : require(name);
-    mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
-    const db = mod.exports;
+    const carregar = criarLoader(root, { "./postgres": { usarPostgres: () => false } });
+    const db = carregar("src/lib/db.ts");
     const exemplo = '[{"id":"exemplo","numero":1}]';
     await fs.writeFile("data/pedidos.json", exemplo);
     assert.equal((await db.getPedidos())[0].id, "exemplo");

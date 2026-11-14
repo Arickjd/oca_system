@@ -23,7 +23,8 @@
     "test:historico": "node scripts/test-historico.cjs",
     "test:auth": "node scripts/test-auth.cjs",
     "test:exportacao": "node scripts/test-exportacao.cjs",
-    "test:cupom": "node scripts/test-cupom.cjs"
+    "test:cupom": "node scripts/test-cupom.cjs",
+    "test:pagamentos": "node scripts/test-pagamentos.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

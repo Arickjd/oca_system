@@ -3,6 +3,7 @@ import type { Config, Pedido } from "./types";
 import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
 import { descontoTotalPedido } from "./descontos";
+import { valorPago, valorRestante } from "./pagamentos";
 
 const LARGURA = 72;
 const MARGEM = 2;
@@ -82,7 +83,9 @@ function desenhar(doc: jsPDF, pedido: Pedido, config: Config, logo: Uint8Array |
   doc.text(formatBRL(pedido.valor_total), LARGURA - MARGEM, y, { align: "right" });
   y += 6;
 
-  paragrafo(pedido.status_pagamento === "finalizado" ? "Pagamento finalizado" : "Pagamento pendente", 7.5, "bold");
+  const parcial = pedido.status_pagamento === "parcial";
+  paragrafo(parcial ? "Recebimento parcial" : pedido.status_pagamento === "finalizado" ? "Pagamento finalizado" : "Pagamento pendente", 7.5, "bold");
+  if (parcial) paragrafo(`Já pago: ${formatBRL(valorPago(pedido))} · Falta: ${formatBRL(valorRestante(pedido))}`, 7);
   if (pedido.status_pagamento === "finalizado") {
     if (pedido.forma_pagamento) paragrafo(`Forma de pagamento: ${nomesPagamento[pedido.forma_pagamento]}`, 7);
     if (pedido.pago_em) paragrafo(`Pago em: ${formatData(pedido.pago_em)}`, 7);

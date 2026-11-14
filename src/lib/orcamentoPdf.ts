@@ -4,6 +4,7 @@ import type { Pedido, Config } from "./types";
 import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
 import { descontoTotalPedido } from "./descontos";
+import { valorPago, valorRestante } from "./pagamentos";
 
 export { descontoTotalPedido };
 
@@ -51,11 +52,18 @@ export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Arr
   const topoPix = 236;
   const limiteConteudo = topoPix - 5;
   const descontoTotal = descontoTotalPedido(pedido);
+  const parcial = pedido.status_pagamento === "parcial";
   const espacoDesconto = descontoTotal > 0 ? 7 : 0;
-  if (y > limiteConteudo - espacoDesconto - (pedido.observacao ? 9 : 0)) { doc.addPage(); y = 20; }
+  const espacoParcial = parcial ? 7 : 0;
+  if (y > limiteConteudo - espacoDesconto - espacoParcial - (pedido.observacao ? 9 : 0)) { doc.addPage(); y = 20; }
   if (descontoTotal > 0) {
     doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(4, 120, 87);
     doc.text("Desconto total aplicado: " + formatBRL(descontoTotal), 195, y, { align: "right" });
+    y += 7;
+  }
+  if (parcial) {
+    doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(180, 83, 9);
+    doc.text(`Já pago: ${formatBRL(valorPago(pedido))}  |  Falta receber: ${formatBRL(valorRestante(pedido))}`, 195, y, { align: "right" });
     y += 7;
   }
   doc.setTextColor(15, 23, 42);

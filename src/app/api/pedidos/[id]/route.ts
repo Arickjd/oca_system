@@ -1,6 +1,6 @@
 import { obterSessao, verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
-import { getPedido, excluirPedido, finalizarPagamento, editarPedido, EdicaoInvalida } from "@/lib/db";
+import { getPedido, excluirPedido, finalizarPagamento, editarPedido, registrarPagamentoParcial, EdicaoInvalida, PagamentoInvalido } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { revalidarHistorico } from "@/lib/revalidarHistorico";
 import type { FormaPagamento } from "@/lib/types";
@@ -34,24 +34,40 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!sessao) return NextResponse.json({ error: "Entre novamente." }, { status: 401 });
   const { id } = await params;
   const body = await req.json().catch(() => null);
-  if (!body || !["pix", "cartao", "dinheiro"].includes(body.forma_pagamento)) {
-    return NextResponse.json({ error: "Selecione Pix, cartão ou dinheiro." }, { status: 400 });
-  }
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
   if (!Number.isSafeInteger(body.revisao) || body.revisao < 0) return NextResponse.json({ error: "Atualize a página antes de confirmar o pagamento." }, { status: 400 });
+  const quem = { id: sessao.usuario.id, nome: sessao.usuario.nome };
   try {
-    const pedido = await finalizarPagamento(id, body.forma_pagamento as FormaPagamento, body.revisao, {
-      id: sessao.usuario.id,
-      nome: sessao.usuario.nome,
-    });
+    if (body.pagamento_parcial !== undefined) {
+      const pedido = await registrarPagamentoParcial(id, body.pagamento_parcial, quem, body.revisao);
+      if (!pedido) {
+        const existe = await getPedido(id);
+        return NextResponse.json({ error: existe ? "Este orçamento foi alterado ou já foi finalizado. Atualize a página e confira o valor." : "Orçamento não encontrado." }, { status: existe ? 409 : 404 });
+      }
+      revalidarHistorico();
+      revalidatePath(`/orcamento/${id}`);
+      revalidatePath("/orcamentos");
+      revalidatePath("/orcamentos/recebimento-parcial");
+      revalidatePath("/home");
+      return NextResponse.json({ status_pagamento: pedido.status_pagamento, valor_pago: pedido.valor_pago, previsao_recebimento: pedido.previsao_recebimento });
+    }
+    if (!["pix", "cartao", "dinheiro"].includes(body.forma_pagamento)) {
+      return NextResponse.json({ error: "Selecione Pix, cartão ou dinheiro." }, { status: 400 });
+    }
+    const pedido = await finalizarPagamento(id, body.forma_pagamento as FormaPagamento, body.revisao, quem);
     if (!pedido) {
       const existe = await getPedido(id);
       return NextResponse.json({ error: existe ? "Este orçamento foi alterado ou já foi finalizado. Atualize a página e confira o valor." : "Orçamento não encontrado." }, { status: existe ? 409 : 404 });
     }
     revalidarHistorico();
     revalidatePath(`/orcamento/${id}`);
+    revalidatePath("/orcamentos");
+    revalidatePath("/orcamentos/recebimento-parcial");
+    revalidatePath("/home");
     return NextResponse.json({ status_pagamento: pedido.status_pagamento, forma_pagamento: pedido.forma_pagamento });
-  } catch {
-    return NextResponse.json({ error: "Não foi possível finalizar o pagamento. Tente novamente." }, { status: 500 });
+  } catch (error) {
+    if (error instanceof PagamentoInvalido) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Não foi possível concluir o pagamento. Tente novamente." }, { status: 500 });
   }
 }
 

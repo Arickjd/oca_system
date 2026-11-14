@@ -41,6 +41,16 @@ export interface ItemPedido {
 
 export type PedidoStatus = "novo" | "em_separacao" | "concluido" | "cancelado";
 export type FormaPagamento = "pix" | "cartao" | "dinheiro";
+export type StatusPagamento = "pendente" | "parcial" | "finalizado";
+
+// Cada entrada é um recebimento registrado antes da quitação do orçamento.
+export interface PagamentoParcial {
+  id: string;
+  valor: number;
+  forma_pagamento: FormaPagamento;
+  pago_em: string; // ISO
+  registrado_por?: { id: string; nome: string };
+}
 
 export interface Pedido {
   id: string;
@@ -53,10 +63,13 @@ export interface Pedido {
   valor_total: number;
   lucro_bruto?: number | null; // desconhecido quando falta algum custo
   status: PedidoStatus;
-  status_pagamento?: "pendente" | "finalizado";
+  status_pagamento?: StatusPagamento;
   forma_pagamento?: FormaPagamento;
   finalizado_por?: Pedido["criado_por"];
   pago_em?: string;
+  pagamentos?: PagamentoParcial[]; // recebimentos parciais, na ordem em que entraram
+  valor_pago?: number; // espelho da soma de pagamentos, para consultas rápidas
+  previsao_recebimento?: string | null; // YYYY-MM-DD: lembrete para receber o restante
   revisao?: number;
   updated_at?: string;
   excluido_em?: string;
