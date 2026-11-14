@@ -3,16 +3,9 @@ import autoTable from "jspdf-autotable";
 import type { Pedido, Config } from "./types";
 import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
+import { descontoTotalPedido } from "./descontos";
 
-export function descontoTotalPedido(pedido: Pedido) {
-  const centavos = pedido.itens.reduce((soma, item) => {
-    const desconto = typeof item.desconto_unitario === "number"
-      ? item.desconto_unitario
-      : Math.max(0, (item.preco_original ?? item.preco_unitario) - item.preco_unitario);
-    return soma + Math.round(desconto * 100) * item.quantidade;
-  }, 0);
-  return centavos / 100;
-}
+export { descontoTotalPedido };
 
 export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Array, pix: { icone: Uint8Array; qrCode: Uint8Array }) {
   const doc = new jsPDF({ format: "a4", unit: "mm", compress: true });

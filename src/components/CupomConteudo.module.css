@@ -14,16 +14,17 @@
   color: #000;
   box-shadow: 0 3px 16px #0f172a15;
   font-family: "Courier New", Courier, monospace;
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
 
 .cupom p { margin: 0; }
 .cupom h1, .cupom h2 { font-weight: 700; }
-.cupom h1 { margin: 8px 0 0; font-size: 13px; }
-.cupom h2 { margin: 0 0 5px; font-size: 11px; }
+.cupom h1 { margin: 8px 0 0; font-size: 14px; }
+.cupom h2 { margin: 0 0 5px; font-size: 12px; }
 .cabecalho { text-align: center; break-inside: avoid; }
 .logo { display: block; width: 36mm; max-width: 100%; height: auto; margin: 0 auto 5px; filter: grayscale(1); }
 .secao, .totais, .rodape { margin-top: 8px; border-top: 1px dashed #000; padding-top: 8px; }

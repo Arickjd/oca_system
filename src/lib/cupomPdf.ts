@@ -2,9 +2,10 @@ import { jsPDF } from "jspdf";
 import type { Config, Pedido } from "./types";
 import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
+import { descontoTotalPedido } from "./descontos";
 
-const LARGURA = 80;
-const MARGEM = 4;
+const LARGURA = 72;
+const MARGEM = 2;
 const CONTEUDO = LARGURA - MARGEM * 2;
 const FONTE = "courier";
 const nomesPagamento = { pix: "Pix", cartao: "Cartão", dinheiro: "Dinheiro" } as const;
@@ -59,7 +60,7 @@ function desenhar(doc: jsPDF, pedido: Pedido, config: Config, logo: Uint8Array |
   y += 0.5;
 
   for (const item of pedido.itens) {
-    paragrafo(item.produto_nome, 8);
+    paragrafo(item.produto_nome, 8, "bold");
     if ((item.desconto_unitario ?? 0) > 0) paragrafo("Desconto aplicado", 6.5);
     doc.setFont("helvetica", "normal").setFontSize(7.5).setTextColor(15, 23, 42);
     doc.text(`${item.quantidade} ${item.modo === "pacote" ? "pct" : "un"} × ${formatBRL(item.preco_unitario)}`, MARGEM, y);
@@ -69,6 +70,13 @@ function desenhar(doc: jsPDF, pedido: Pedido, config: Config, logo: Uint8Array |
   }
 
   separador(1.5);
+  const desconto = descontoTotalPedido(pedido);
+  if (desconto > 0) {
+    doc.setFont("helvetica", "normal").setFontSize(8).setTextColor(15, 23, 42);
+    doc.text("Desconto:", MARGEM, y);
+    doc.text(`-${formatBRL(desconto)}`, LARGURA - MARGEM, y, { align: "right" });
+    y += 4.6;
+  }
   doc.setFont("helvetica", "bold").setFontSize(10).setTextColor(15, 23, 42);
   doc.text("TOTAL", MARGEM, y);
   doc.text(formatBRL(pedido.valor_total), LARGURA - MARGEM, y, { align: "right" });
