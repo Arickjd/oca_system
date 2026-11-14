@@ -17,7 +17,7 @@ export function ReciboAcoes({ pedidoId, numero, shareTitle }: { pedidoId: string
         if (!res.ok) throw new Error("Não foi possível gerar o PDF. Tente novamente.");
         const blob = await res.blob();
         if (!blob.type.includes("application/pdf")) throw new Error("O arquivo recebido não é um PDF.");
-        if (!controller.signal.aborted) setArquivo(new File([blob], "orcamento-" + numero + ".pdf", { type: "application/pdf" }));
+        if (!controller.signal.aborted) setArquivo(new File([blob], "oca" + numero + ".pdf", { type: "application/pdf" }));
       })
       .catch(error => { if (!controller.signal.aborted) setMensagem(error.message || "Falha ao gerar PDF."); })
       .finally(() => { if (!controller.signal.aborted) setCarregando(false); });

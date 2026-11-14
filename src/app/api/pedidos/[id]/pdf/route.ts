@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const pdf = gerarOrcamentoPdf(pedido, config, logo, { icone, qrCode });
     return new Response(pdf, { headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": 'attachment; filename="orcamento-' + pedido.numero + '.pdf"',
+      "Content-Disposition": 'attachment; filename="oca' + pedido.numero + '.pdf"',
       "Cache-Control": "private, no-store",
     } });
   } catch {

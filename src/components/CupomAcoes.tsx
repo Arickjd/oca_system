@@ -19,7 +19,7 @@ export function CupomAcoes({ pedidoId, numero, finalizado }: { pedidoId: string;
         if (!res.ok) throw new Error("Não foi possível preparar o cupom para compartilhar.");
         const blob = await res.blob();
         if (!blob.type.includes("application/pdf")) throw new Error("O arquivo recebido não é um PDF.");
-        if (!controle.signal.aborted) setArquivo(new File([blob], `cupom-${numero}.pdf`, { type: "application/pdf" }));
+        if (!controle.signal.aborted) setArquivo(new File([blob], `oca${numero}.pdf`, { type: "application/pdf" }));
       })
       .catch(error => {
         if (!controle.signal.aborted) setErro(error instanceof Error ? error.message : "Falha ao preparar o cupom.");
