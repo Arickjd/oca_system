@@ -27,7 +27,7 @@ export default async function RecebimentoParcialPage() {
 
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Total a receber</p>
-      <p className="mt-1 text-3xl font-bold tabular-nums text-amber-900">{formatBRL(total)}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-amber-900">{formatBRL(total)}</p>
       <p className="mt-1 text-sm text-amber-900">
         {pedidos.length} {pedidos.length === 1 ? "orçamento" : "orçamentos"} · {atrasados ? `${atrasados} com prazo vencido` : "nenhum prazo vencido"}
       </p>
