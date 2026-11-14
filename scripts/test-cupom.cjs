@@ -25,9 +25,10 @@ const pedido = {
 const config = { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "Contato", endereco: "Endereço de teste" };
 const render = p => renderToStaticMarkup(React.createElement(CupomConteudo, { pedido: p, config }));
 const html = render(pedido);
-for (const texto of ["80 mm", "ORÇAMENTO", "Pagamento pendente", "Pague com Pix", "Chave Pix: 12.110.806/0001-11", "J M Jesus Reis", "/pix/icon_pix_black.jpg", "/pix/qrcode_pix.png", "alt=\"QR Code para pagamento via Pix\"", "qrCode", "Responsável:", "Jardel", "Desconto aplicado", "80,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
+for (const texto of ["80 mm", "ORÇAMENTO", "Pagamento pendente", "Pague com Pix", "Chave Pix: 12.110.806/0001-11", "J M Jesus Reis", "/pix/icon_pix_black.jpg", "/pix/qrcode_pix.png", "alt=\"QR Code para pagamento via Pix\"", "qrCode", "Responsável:", "Jardel", "Desconto aplicado", "Desconto:", "-R$", "40,00", "80,00", "160,00", "Cliente &lt;script&gt;"]) assert.ok(html.includes(texto), texto);
 for (const texto of ["DOCUMENTO NÃO FISCAL", "Este documento não é fiscal.", "Pacote com 100 itens", ">OCA Distribuidora<", ">Contato<"]) assert.ok(!html.includes(texto), texto);
-for (const texto of ["Valor Original:", "Valor final:", "Desconto total", "40,00"]) assert.ok(!html.includes(texto), texto);
+assert.ok(html.indexOf("Desconto:") < html.indexOf("TOTAL"), "desconto antes do total");
+for (const texto of ["Valor Original:", "Valor final:", "Desconto total"]) assert.ok(!html.includes(texto), texto);
 for (const texto of ["lucro", "custo", "9876", "9.876", "12345", "12.345", "<script>"]) assert.ok(!html.toLowerCase().includes(texto), texto);
 const semDesconto = render({ ...pedido, itens: [{ ...pedido.itens[0], preco_unitario: 100, desconto_unitario: 0, subtotal: 200 }], valor_total: 200 });
 assert.ok(!semDesconto.includes("Desconto"));

@@ -28,18 +28,23 @@ export function CupomAcoes({ pedidoId, numero, finalizado }: { pedidoId: string;
     return () => controle.abort();
   }, [pedidoId, numero]);
 
-  async function imprimir() {
+  async function imprimir(ajustarAoConteudo = false) {
     setPreparando(true); setErro("");
     try {
       await document.fonts.ready;
       const cupom = document.getElementById("cupom-conteudo");
       if (!cupom) throw new Error("Não foi possível preparar o cupom.");
       await Promise.all([...cupom.querySelectorAll("img")].map(img => img.decode().catch(() => undefined)));
-      // 80 x 297 mm é uma das duas formas que o driver da TM-T20X expõe.
-      // Sem ela, o Chrome cai no padrão de 80 x 3276 mm (3,27 m de bobina).
+      // 80 x 297 mm é uma das duas formas que o driver da TM-T20X expõe; sem ela,
+      // o Chrome cai no padrão de 80 x 3276 mm (3,27 m de bobina). O modo ajustado
+      // usa a altura real do conteúdo, para drivers/impressoras que aceitam
+      // tamanho personalizado e cortam a bobina no fim do cupom.
+      const altura = ajustarAoConteudo
+        ? Math.min(3276, Math.max(60, Math.ceil(cupom.getBoundingClientRect().height * 25.4 / 96) + 2))
+        : 297;
       let estilo = document.getElementById("cupom-tamanho-pagina");
       if (!estilo) { estilo = document.createElement("style"); estilo.id = "cupom-tamanho-pagina"; document.head.appendChild(estilo); }
-      estilo.textContent = "@page { size: 72mm 297mm; margin: 0; }";
+      estilo.textContent = `@page { size: 72mm ${altura}mm; margin: 0; }`;
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       window.print();
     } catch (error) { setErro(error instanceof Error ? error.message : "Não foi possível abrir a impressão."); }
@@ -74,8 +79,9 @@ export function CupomAcoes({ pedidoId, numero, finalizado }: { pedidoId: string;
   return <section className="no-print mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-4">
     <Link href={`/orcamento/${pedidoId}`} className="text-sm underline">{finalizado ? "Voltar à venda" : "Voltar ao orçamento"}</Link>
     <h2 className="mt-3 text-lg font-bold">Imprimir cupom de 80 mm</h2>
-    <p className="mt-1 text-sm text-slate-500">Na janela de impressão: impressora térmica, papel <strong>80 × 297 mm</strong> (não 80 × 3276 mm), margens Nenhuma e escala 100%. Desative cabeçalhos e rodapés do navegador.</p>
-    <button type="button" disabled={preparando} onClick={imprimir} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50">{preparando ? "Preparando…" : "Imprimir cupom"}</button>
+    <p className="mt-1 text-sm text-slate-500">Na janela de impressão: impressora térmica, papel <strong>80 × 297 mm</strong> (não 80 × 3276 mm), margens Nenhuma e escala 100%, sem cabeçalhos e rodapés. Se a impressora aceitar tamanho personalizado, use <strong>Imprimir ajustado ao conteúdo</strong> para a bobina ser cortada no fim do cupom.</p>
+    <button type="button" disabled={preparando} onClick={() => imprimir()} className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50">{preparando ? "Preparando…" : "Imprimir cupom"}</button>
+    <button type="button" disabled={preparando} onClick={() => imprimir(true)} className="mt-2 w-full text-center text-xs text-slate-500 underline disabled:opacity-50">Imprimir ajustado ao conteúdo (sem sobra)</button>
     <button type="button" disabled={!arquivo || compartilhando} onClick={compartilhar}
       className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white disabled:opacity-50">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
