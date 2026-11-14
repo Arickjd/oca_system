@@ -39,16 +39,15 @@ export function EfetivarPagamento({ id, numero, revisao, restante, parcial = fal
     }
   }
 
-  return <div className="flex min-w-0 flex-col gap-1 sm:ml-auto">
-    <div role="group" aria-label={`Efetivar orçamento ${numero} com`} className="flex flex-wrap items-center gap-2">
-      <span className="text-sm text-slate-500">{parcial ? "Receber restante com" : "Receber com"}</span>
+  return <div className="flex w-full min-w-0 flex-col gap-2">
+    <div role="group" aria-label={`Efetivar orçamento ${numero} com`} className="grid grid-cols-4 gap-1.5">
       {opcoes.map(opcao => <button key={opcao.valor} type="button" disabled={salvando !== null}
         aria-label={`Efetivar orçamento ${numero} com ${opcao.nome}`} onClick={() => efetivar(opcao.valor)}
-        className="min-h-10 rounded-lg bg-emerald-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 active:scale-[0.98] disabled:opacity-60">
+        className="min-h-10 rounded-lg bg-emerald-700 px-1 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 active:scale-[0.98] disabled:opacity-60 sm:text-sm">
         {salvando === opcao.valor ? "Efetivando…" : opcao.nome}
       </button>)}
       <button type="button" disabled={salvando !== null} aria-expanded={abrirParcial} onClick={() => setAbrirParcial(valor => !valor)}
-        className={`min-h-10 rounded-lg border px-3 py-2 text-sm font-semibold transition disabled:opacity-60 ${abrirParcial ? "border-amber-700 bg-amber-100 text-amber-900" : "border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100"}`}>
+        className={`min-h-10 rounded-lg border px-1 py-2 text-xs font-semibold transition disabled:opacity-60 sm:text-sm ${abrirParcial ? "border-amber-700 bg-amber-100 text-amber-900" : "border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100"}`}>
         Parcial
       </button>
     </div>

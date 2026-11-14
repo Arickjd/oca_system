@@ -39,7 +39,7 @@ export function SiteHeader({ usuario, admin, contagens, avisos = [] }: {
         <nav aria-label="Navegação principal" className="order-3 col-span-2 flex max-w-full items-center justify-center justify-self-center gap-0.5 rounded-xl bg-slate-100 p-1 min-[400px]:order-none min-[400px]:col-span-1">
           {[{ href: "/orcamentos", nome: "Orçamentos" }, { href: "/vendas", nome: "Vendas" }, { href: "/relatorios", nome: "Relatórios" }].map(link => {
             const ativo = pathname === link.href || (link.href === "/orcamentos" && pathname.startsWith("/orcamento/"));
-            return <Link key={link.href} href={link.href} aria-current={ativo ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-2 py-2.5 text-sm font-semibold tracking-tight min-[400px]:px-0.5 sm:px-3 sm:tracking-normal ${ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{link.nome}</Link>;
+            return <Link key={link.href} href={link.href} aria-current={ativo ? "page" : undefined} className={`whitespace-nowrap rounded-lg px-2 py-2.5 text-[13px] font-semibold tracking-tight min-[400px]:px-0.5 sm:px-3 sm:tracking-normal ${ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-white hover:text-slate-900"}`}>{link.nome}</Link>;
           })}
         </nav>
         <div className="order-2 flex items-center justify-self-end gap-2 min-[400px]:order-none">
@@ -81,30 +81,32 @@ export function SiteHeader({ usuario, admin, contagens, avisos = [] }: {
           </Link>
         </div>
       </div>
-      <div className={`mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-2 text-sm text-slate-500 sm:text-xs ${mostrarAbas || mostrarAvisos ? "justify-between" : "justify-end"}`}>
-        {mostrarAbas && <nav aria-label="Situação dos orçamentos" className="flex min-w-0 flex-wrap items-center gap-1">
+
+      <div className="mx-auto flex max-w-3xl items-center gap-2 px-3 pb-2 text-slate-500 sm:gap-3">
+        {mostrarAbas && <nav aria-label="Situação dos orçamentos" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:overflow-visible">
           {abas.map(aba => <Link key={aba.href} href={aba.href} aria-current={aba.ativo ? "page" : undefined}
-            className={`inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-[11px] font-semibold transition sm:text-xs ${aba.ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
+            className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-1 text-[10px] font-semibold transition sm:px-2 sm:text-xs ${aba.ativo ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`}>
             {aba.nome}
-            <span aria-label={`${aba.quantidade} ${aba.nome}`} className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${aba.ativo ? "bg-white/20 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{aba.quantidade}</span>
+            <span aria-label={`${aba.quantidade} ${aba.nome}`} className={`rounded-full px-1 py-0.5 text-[9px] font-bold tabular-nums sm:px-1.5 sm:text-[10px] ${aba.ativo ? "bg-white/20 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{aba.quantidade}</span>
           </Link>)}
         </nav>}
         {mostrarAvisos && <button type="button" onClick={() => setAbrirAvisos(valor => !valor)} aria-expanded={abrirAvisos}
-          className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold transition sm:text-xs ${atrasados ? "border-red-300 bg-red-50 text-red-800 hover:bg-red-100" : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"}`}>
+          aria-label={`Avisos de recebimento (${avisos.length})`} title="Avisos de recebimento"
+          className={`relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border transition ${atrasados ? "border-red-300 bg-red-50 text-red-800 hover:bg-red-100" : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"}`}>
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4">
             <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10.3 21a2 2 0 0 0 3.4 0" />
           </svg>
-          Avisos de recebimento
-          <span aria-label={`${avisos.length} aviso(s)`} className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${atrasados ? "bg-red-600 text-white" : "bg-white text-amber-900 ring-1 ring-amber-300"}`}>{avisos.length}</span>
+          {avisos.length > 0 && <span className={`absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full px-1 text-[9px] font-bold tabular-nums ${atrasados ? "bg-red-600 text-white" : "bg-amber-600 text-white"}`}>{avisos.length}</span>}
         </button>}
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <span>Usuário: <strong className="font-medium text-slate-700">{usuario}</strong></span>
-          {admin && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Admin</span>}
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <span className="truncate text-[11px] sm:text-xs"><span className="hidden sm:inline">Usuário: </span><strong className="font-medium text-slate-700">{usuario}</strong></span>
+          {admin && <span className="hidden shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 min-[380px]:inline sm:px-2 sm:text-xs">Admin</span>}
+          <form action="/api/auth/logout" method="post"><button className="shrink-0 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100 sm:px-3 sm:py-1.5 sm:text-xs">Sair</button></form>
         </div>
-        <form action="/api/auth/logout" method="post"><button className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 hover:bg-slate-100">Sair</button></form>
       </div>
-      {mostrarAvisos && abrirAvisos && <div className="mx-auto max-w-3xl px-3 pb-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+
+      {mostrarAvisos && abrirAvisos && <div className="absolute inset-x-0 top-full z-40 px-3">
+        <div className="mx-auto max-w-3xl rounded-b-xl border border-t-0 border-slate-200 bg-white p-3 shadow-lg">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recebimentos com prazo</p>
             <Link href="/orcamentos/recebimento-parcial" onClick={() => setAbrirAvisos(false)} className="text-xs font-medium underline">Ver todos</Link>

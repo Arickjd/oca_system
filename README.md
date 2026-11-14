@@ -98,8 +98,8 @@ exigem migração do banco.
 - Ao confirmar, o orçamento recebe o status **parcial**, sai da aba **Em aberto** e passa para **Recebimento parcial** (`/orcamentos/recebimento-parcial`). A página soma o **total a receber** e, em cada card, destaca **Já pago**, **Falta receber** e o prazo do lembrete (atrasado, vence hoje ou vence em N dias).
 - O restante é recebido pelas formas de pagamento do próprio card; a quitação efetiva a venda, limpa o lembrete e registra o restante como o último recebimento do histórico. É possível registrar mais de um parcial antes de quitar.
 - A página individual do orçamento mostra o resumo do parcial, o histórico de recebimentos e o mesmo formulário; o cupom de 80 mm e o PDF A4 passam a exibir `Recebimento parcial`, `Já pago` e `Falta receber`.
-- Nas páginas de orçamentos, o cabeçalho exibe as abas **Em aberto** e **Recebimento parcial** com a quantidade de cada uma, na linha do usuário (no celular a linha quebra para não apertar).
-- Na home, o cabeçalho mostra o botão **Avisos de recebimento** logo abaixo da logo (com a quantidade); ao abrir, lista os parciais que têm prazo, do mais urgente para o mais distante, destacando os atrasados e o valor restante.
+- Nas páginas de orçamentos, o cabeçalho exibe as abas **Em aberto** e **Recebimento parcial** com a quantidade de cada uma, na mesma linha do usuário, mantendo o cabeçalho com duas linhas; no celular o prefixo “Usuário:” é omitido para as abas caberem.
+- Na home, o cabeçalho mostra um sino com a quantidade de **Avisos de recebimento** abaixo da logo; ao abrir, o painel aparece como dropdown (não aumenta o cabeçalho) e lista os parciais com prazo, do mais urgente para o mais distante, destacando os atrasados e o valor restante.
 - A edição de um orçamento parcial não pode reduzir o total para menos do que já foi recebido; o sistema bloqueia com uma mensagem.
 
 - Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.
