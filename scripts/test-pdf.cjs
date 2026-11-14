@@ -57,4 +57,16 @@ const cupom = gerarCupomPdf(cupomPedido, { distribuidora_nome: "OCA Distribuidor
 assert.equal(Buffer.from(cupom).subarray(0, 5).toString(), "%PDF-");
 assert.ok(cupom.length > 1000);
 fs.writeFileSync("tmp/pdfs/cupom-teste.pdf", cupom);
+
+// Cupom e A4 de um orçamento com recebimento parcial.
+const parcialPedido = {
+  ...cupomPedido,
+  status_pagamento: "parcial",
+  pagamentos: [{ id: "pg", valor: 100, forma_pagamento: "pix", pago_em: "2026-11-10T13:00:00Z" }],
+};
+const cupomParcial = gerarCupomPdf(parcialPedido, { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "(89) 99427-0756", endereco: "", whatsapp: "", pack_padrao: 6 }, null, null);
+fs.writeFileSync("tmp/pdfs/cupom-parcial.pdf", cupomParcial);
+const orcamentoParcial = gerarOrcamentoPdf(parcialPedido, { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "(89) 99427-0756", endereco: "", whatsapp: "", pack_padrao: 6 },
+  fs.readFileSync("public/logo.png"), { icone: fs.readFileSync("public/pix/icon_pix_green.jpg"), qrCode: fs.readFileSync("public/pix/qrcode_pix.png") });
+fs.writeFileSync("tmp/pdfs/orcamento-parcial.pdf", orcamentoParcial);
 console.log("Cupom 80 mm gerado em tmp/pdfs/cupom-teste.pdf");

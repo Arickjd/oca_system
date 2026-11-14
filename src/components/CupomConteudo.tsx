@@ -3,10 +3,12 @@ import { formatBRL, formatData } from "@/lib/format";
 import { formasPagamento } from "@/lib/periodoOrcamentos";
 import { chavePix, titularPix } from "@/lib/pix";
 import { descontoTotalPedido } from "@/lib/descontos";
+import { valorPago, valorRestante } from "@/lib/pagamentos";
 import styles from "./CupomConteudo.module.css";
 
 export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Config }) {
   const finalizado = pedido.status_pagamento === "finalizado";
+  const parcial = pedido.status_pagamento === "parcial";
   const desconto = descontoTotalPedido(pedido);
   return <article id="cupom-conteudo" className={styles.cupom} aria-label="Prévia do cupom de 80 mm">
     <header className={styles.cabecalho}>
@@ -38,7 +40,8 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
     <section className={styles.totais} aria-label="Total e pagamento">
       {desconto > 0 && <div className={styles.linha}><span>Desconto:</span><span>-{formatBRL(desconto)}</span></div>}
       <div className={`${styles.linha} ${styles.total}`}><strong>TOTAL</strong><strong>{formatBRL(pedido.valor_total)}</strong></div>
-      <p><strong>{finalizado ? "Pagamento finalizado" : "Pagamento pendente"}</strong></p>
+      <p><strong>{finalizado ? "Pagamento finalizado" : parcial ? "Recebimento parcial" : "Pagamento pendente"}</strong></p>
+      {parcial && <p>Já pago: {formatBRL(valorPago(pedido))} · Falta: {formatBRL(valorRestante(pedido))}</p>}
       {finalizado && pedido.forma_pagamento && <p>Forma de pagamento: {formasPagamento[pedido.forma_pagamento]}</p>}
       {finalizado && pedido.pago_em && <p>Pago em: {formatData(pedido.pago_em)}</p>}
     </section>

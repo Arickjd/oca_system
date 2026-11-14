@@ -33,6 +33,9 @@ for (const texto of ["lucro", "custo", "9876", "9.876", "12345", "12.345", "<scr
 const semDesconto = render({ ...pedido, itens: [{ ...pedido.itens[0], preco_unitario: 100, desconto_unitario: 0, subtotal: 200 }], valor_total: 200 });
 assert.ok(!semDesconto.includes("Desconto"));
 assert.ok(!semDesconto.includes("Valor final:"));
+const parcial = render({ ...pedido, status_pagamento: "parcial", pagamentos: [{ id: "pg", valor: 60, forma_pagamento: "pix", pago_em: "2026-10-25T15:30:00Z" }] });
+for (const texto of ["Recebimento parcial", "Já pago:", "Falta:", "60,00", "100,00", "Pague com Pix"]) assert.ok(parcial.includes(texto), texto);
+assert.ok(!parcial.includes("Pagamento pendente"));
 for (const [forma, nome] of [["pix", "Pix"], ["cartao", "Cartão"], ["dinheiro", "Dinheiro"]]) {
   const pago = render({ ...pedido, status_pagamento: "finalizado", forma_pagamento: forma, pago_em: "2026-10-25T16:00:00Z" });
   for (const texto of ["RECIBO DE VENDA", "Pagamento finalizado", nome, "Pago em:"]) assert.ok(pago.includes(texto));

@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatBRL } from "@/lib/format";
-import type { FormaPagamento } from "@/lib/types";
+import { formatBRL, formatData } from "@/lib/format";
+import { situacaoPrazo } from "@/lib/pagamentos";
+import { dataCurta } from "@/lib/periodoOrcamentos";
+import type { FormaPagamento, PagamentoParcial, StatusPagamento } from "@/lib/types";
+import { PagamentoParcialForm } from "./PagamentoParcialForm";
 
 const nomes: Record<FormaPagamento, string> = { pix: "Pix", cartao: "Cartão", dinheiro: "Dinheiro" };
 const opcoes: { valor: FormaPagamento; nome: string; detalhe: string }[] = [
@@ -12,13 +15,25 @@ const opcoes: { valor: FormaPagamento; nome: string; detalhe: string }[] = [
   { valor: "dinheiro", nome: "Dinheiro", detalhe: "Em espécie" },
 ];
 
-export function PagamentoOrcamento({ id, finalizado, forma, revisao, valor }: {
-  id: string; finalizado: boolean; forma?: FormaPagamento; revisao: number; valor: number;
+const tomPrazo = { atraso: "text-red-700", hoje: "text-amber-800", proximo: "text-amber-700", futuro: "text-slate-500" } as const;
+
+export function PagamentoOrcamento({ id, finalizado, status, forma, revisao, valor, pago, restante, previsao, pagamentos }: {
+  id: string;
+  finalizado: boolean;
+  status?: StatusPagamento;
+  forma?: FormaPagamento;
+  revisao: number;
+  valor: number;
+  pago: number;
+  restante: number;
+  previsao?: string | null;
+  pagamentos?: PagamentoParcial[];
 }) {
   const router = useRouter();
   const [salvando, setSalvando] = useState<FormaPagamento | null>(null);
   const [erro, setErro] = useState("");
   const [confirmada, setConfirmada] = useState<FormaPagamento | null>(null);
+  const [abrirParcial, setAbrirParcial] = useState(false);
 
   // Selecionar a forma de pagamento já efetiva a venda; não há etapa de confirmação.
   async function efetivar(escolhida: FormaPagamento) {
@@ -44,12 +59,24 @@ export function PagamentoOrcamento({ id, finalizado, forma, revisao, valor }: {
   const formaFinal = confirmada ?? forma;
   if (finalizado || confirmada) return <p role="status" className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-800">Finalizado{formaFinal ? ` · ${nomes[formaFinal]}` : ""}</p>;
 
-  return <section className="rounded-xl border border-amber-200 bg-white p-4">
+  const parcial = status === "parcial";
+  const prazo = situacaoPrazo(previsao);
+
+  return <section className={`rounded-xl border p-4 ${parcial ? "border-amber-300 bg-amber-50" : "border-amber-200 bg-white"}`}>
     <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 className="font-semibold text-amber-800">Pagamento pendente</h2>
-      <strong className="text-lg tabular-nums text-slate-900">{formatBRL(valor)}</strong>
+      <h2 className={`font-semibold ${parcial ? "text-amber-900" : "text-amber-800"}`}>{parcial ? "Recebimento parcial" : "Pagamento pendente"}</h2>
+      <strong className="text-lg tabular-nums text-slate-900">{formatBRL(parcial ? restante : valor)}</strong>
     </div>
-    <p className="mt-1 text-sm text-slate-500">Toque na forma de pagamento para efetivar a venda. A confirmação é imediata.</p>
+
+    {parcial && <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+      <span className="text-slate-600">Já recebido: <strong className="tabular-nums text-slate-800">{formatBRL(pago)}</strong></span>
+      <span className="font-semibold text-amber-900">Falta receber: <strong className="text-base tabular-nums">{formatBRL(restante)}</strong></span>
+    </div>}
+
+    {previsao && <p className={`mt-1 text-sm font-medium ${prazo ? tomPrazo[prazo.tom] : "text-slate-500"}`}>Lembrete: receber até {dataCurta(previsao)}{prazo ? ` · ${prazo.texto}` : ""}</p>}
+
+    <p className="mt-1 text-sm text-slate-500">Toque na forma de pagamento para {parcial ? "quitar o restante e efetivar a venda" : "efetivar a venda"}. A confirmação é imediata.</p>
+
     <div role="group" aria-label="Forma de pagamento" className="mt-3 grid grid-cols-3 gap-2">
       {opcoes.map(opcao => <button key={opcao.valor} type="button" disabled={salvando !== null}
         aria-label={`Efetivar venda com ${opcao.nome}`} onClick={() => efetivar(opcao.valor)}
@@ -58,6 +85,23 @@ export function PagamentoOrcamento({ id, finalizado, forma, revisao, valor }: {
         <span className="hidden text-[11px] leading-tight text-slate-500 sm:block">{opcao.detalhe}</span>
       </button>)}
     </div>
+
+    <button type="button" aria-expanded={abrirParcial} onClick={() => setAbrirParcial(valor => !valor)}
+      className="mt-2 w-full rounded-xl border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-50">
+      {abrirParcial ? "Fechar recebimento parcial" : "Registrar pagamento parcial"}
+    </button>
+
+    {abrirParcial && <PagamentoParcialForm id={id} restante={restante} revisao={revisao} onFechar={() => setAbrirParcial(false)} />}
     {erro && <p role="alert" className="mt-2 text-sm text-red-700">{erro}</p>}
+
+    {!!pagamentos?.length && <div className="mt-3 border-t border-amber-200 pt-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Recebimentos registrados</p>
+      <ul className="mt-1 flex flex-col gap-1 text-sm">
+        {pagamentos.map(pagamento => <li key={pagamento.id} className="flex flex-wrap items-baseline justify-between gap-x-2">
+          <span className="text-slate-600">{formatData(pagamento.pago_em)} · {nomes[pagamento.forma_pagamento]}{pagamento.registrado_por ? ` · ${pagamento.registrado_por.nome}` : ""}</span>
+          <strong className="tabular-nums text-slate-800">{formatBRL(pagamento.valor)}</strong>
+        </li>)}
+      </ul>
+    </div>}
   </section>;
 }

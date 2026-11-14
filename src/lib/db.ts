@@ -7,9 +7,13 @@ import type {
   Categoria,
   FormaPagamento,
   ItemPedido,
+  PagamentoParcial,
   Pedido,
   Produto,
 } from "./types";
+import { valorPago, valorRestante } from "./pagamentos";
+import { dataValida, diaLocal } from "./periodoOrcamentos";
+import { formatBRL } from "./format";
 
 // PostgreSQL quando DATABASE_URL estiver configurada; JSON apenas para uso local.
 // Na Vercel, uma configuração ausente interrompe a operação em vez de perder dados.
@@ -255,21 +259,113 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
   return run;
 }
 
-export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number, finalizadoPor?: Pedido["finalizado_por"]): Promise<Pedido | undefined> {
-  if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
-  const patch = {
-    status_pagamento: "finalizado" as const,
-    forma_pagamento: forma,
-    finalizado_por: finalizadoPor,
-    pago_em: new Date().toISOString(),
-    status: "concluido" as const,
+export class PagamentoInvalido extends Error {}
+
+const FORMAS_PAGAMENTO: FormaPagamento[] = ["pix", "cartao", "dinheiro"];
+
+export interface EntradaPagamentoParcial {
+  valor: number;
+  forma_pagamento: FormaPagamento;
+  previsao_recebimento?: string | null;
+}
+
+function normalizarPagamentoParcial(entrada: unknown, hoje = diaLocal(new Date())): EntradaPagamentoParcial {
+  const b = entrada as Partial<EntradaPagamentoParcial> | null;
+  if (!b || typeof b !== "object") throw new PagamentoInvalido("Informe o valor do recebimento parcial.");
+  if (!FORMAS_PAGAMENTO.includes(b.forma_pagamento as FormaPagamento)) throw new PagamentoInvalido("Selecione Pix, cartão ou dinheiro.");
+  const valor = typeof b.valor === "number" ? Math.round(b.valor * 100) / 100 : NaN;
+  if (!Number.isFinite(valor) || valor <= 0) throw new PagamentoInvalido("Informe um valor maior que zero.");
+  if (valor > 1_000_000) throw new PagamentoInvalido("Valor acima do permitido para um recebimento.");
+  const previsao = b.previsao_recebimento ?? null;
+  if (previsao !== null) {
+    if (typeof previsao !== "string" || !dataValida(previsao)) throw new PagamentoInvalido("Escolha uma data válida para o lembrete.");
+    if (previsao < hoje) throw new PagamentoInvalido("O lembrete não pode estar no passado.");
+  }
+  return { valor, forma_pagamento: b.forma_pagamento as FormaPagamento, previsao_recebimento: previsao };
+}
+
+// Registra um recebimento parcial: o orçamento continua aberto, agora na aba
+// "Recebimento parcial", até o restante ser recebido e a venda efetivada.
+export async function registrarPagamentoParcial(
+  id: string,
+  entrada: unknown,
+  registradoPor?: Pedido["criado_por"],
+  revisao?: number,
+): Promise<Pedido | undefined> {
+  const { valor, forma_pagamento, previsao_recebimento } = normalizarPagamentoParcial(entrada);
+  const agora = new Date().toISOString();
+  const pagamento: PagamentoParcial = { id: randomUUID(), valor, forma_pagamento, pago_em: agora, registrado_por: registradoPor };
+
+  const montarPatch = (pedido: Pedido) => {
+    const restante = valorRestante(pedido);
+    if (valor >= restante) throw new PagamentoInvalido(`O valor cobre o restante (${formatBRL(restante)}); use o pagamento total para finalizar a venda.`);
+    const pagamentos = [...(pedido.pagamentos ?? []), pagamento];
+    return {
+      pagamentos,
+      valor_pago: Math.round(pagamentos.reduce((soma, p) => soma + Math.round(p.valor * 100), 0)) / 100,
+      status_pagamento: "parcial" as const,
+      previsao_recebimento: previsao_recebimento ?? pedido.previsao_recebimento ?? null,
+      updated_at: agora,
+      revisao: (pedido.revisao ?? 0) + 1,
+    };
   };
-  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch, revisao);
+
+  if (postgres.usarPostgres()) {
+    const pedido = await postgres.buscar<Pedido>("pedidos", id);
+    if (!pedido || pedido.excluido_em || pedido.status_pagamento === "finalizado" || (revisao !== undefined && (pedido.revisao ?? 0) !== revisao)) return undefined;
+    return postgres.editarPedido(id, montarPatch(pedido), revisao ?? pedido.revisao ?? 0);
+  }
+
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
     if (!pedido) return undefined;
-    Object.assign(pedido, patch, { revisao: (pedido.revisao ?? 0) + 1 });
+    Object.assign(pedido, montarPatch(pedido));
+    const dest = PEDIDOS_LOCAL;
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return pedido;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number, finalizadoPor?: Pedido["finalizado_por"]): Promise<Pedido | undefined> {
+  if (!FORMAS_PAGAMENTO.includes(forma)) throw new Error("Forma de pagamento inválida.");
+  const agora = new Date().toISOString();
+
+  // Ao quitar um orçamento que já teve recebimentos parciais, o restante entra
+  // como o último pagamento do histórico, para o cupom e a auditoria fecharem.
+  const patchDe = (pedido: Pedido) => {
+    const restante = valorRestante(pedido);
+    const pagamentos = [...(pedido.pagamentos ?? [])];
+    if (pagamentos.length && restante > 0) {
+      pagamentos.push({ id: randomUUID(), valor: restante, forma_pagamento: forma, pago_em: agora, registrado_por: finalizadoPor });
+    }
+    return {
+      status_pagamento: "finalizado" as const,
+      forma_pagamento: forma,
+      finalizado_por: finalizadoPor,
+      pago_em: agora,
+      status: "concluido" as const,
+      valor_pago: pedido.valor_total,
+      previsao_recebimento: null,
+      updated_at: agora,
+      ...(pagamentos.length ? { pagamentos } : {}),
+    };
+  };
+
+  if (postgres.usarPostgres()) {
+    const atual = await postgres.buscar<Pedido>("pedidos", id);
+    if (!atual || atual.excluido_em || atual.status_pagamento === "finalizado") return undefined;
+    return postgres.finalizarPagamento(id, patchDe(atual), revisao);
+  }
+
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
+    if (!pedido) return undefined;
+    Object.assign(pedido, patchDe(pedido), { revisao: (pedido.revisao ?? 0) + 1 });
     const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
@@ -354,6 +450,10 @@ export async function editarPedido(id: string, body: unknown, permitirVenda = fa
         custo_unitario: custo, subtotal: Math.round(preco * it.quantidade * 100) / 100 };
     });
     const total = itens.reduce((s, it) => s + Math.round(it.subtotal * 100), 0) / 100;
+    if (anterior.status_pagamento === "parcial") {
+      const pago = valorPago(anterior);
+      if (total < pago) throw new EdicaoInvalida(`O novo total (${formatBRL(total)}) ficaria abaixo do valor já recebido (${formatBRL(pago)}). Ajuste os recebimentos antes de editar.`);
+    }
     const patch = { cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
       itens, valor_total: total, lucro_bruto: itens.every(it => it.custo_unitario != null)
         ? (Math.round(total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100 : null,

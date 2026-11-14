@@ -8,6 +8,8 @@ import {
 } from "@/lib/format";
 import { ReciboAcoes } from "@/components/ReciboAcoes";
 import { PagamentoOrcamento } from "@/components/PagamentoOrcamento";
+import { valorPago, valorRestante } from "@/lib/pagamentos";
+import { dataCurta } from "@/lib/periodoOrcamentos";
 import { exigirSessao } from "@/lib/auth-servidor";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +40,7 @@ export default async function OrcamentoPage({ params }: Params) {
 
       <div className="p-3 sm:p-6">
         <div id="pagamento" className="no-print mx-auto mb-4 max-w-[210mm] scroll-mt-52">
-          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} valor={pedido.valor_total} />
+          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} status={pedido.status_pagamento} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} valor={pedido.valor_total} pago={valorPago(pedido)} restante={valorRestante(pedido)} previsao={pedido.previsao_recebimento} pagamentos={pedido.pagamentos} />
           {pedido.status_pagamento === "finalizado" && <p className="mt-2 text-sm text-slate-600">Pagamento confirmado por: {pedido.finalizado_por?.nome ?? "Não informado"}</p>}
         </div>
         {/* Recibo A4 */}
@@ -138,6 +140,11 @@ export default async function OrcamentoPage({ params }: Params) {
                 {formatBRL(pedido.valor_total)}
               </span>
               </div>
+              {pedido.status_pagamento === "parcial" && <div className="mt-1 border-t border-slate-200 pt-1 text-sm">
+                <div className="flex items-center justify-between"><span className="text-slate-600">Já pago</span><span className="tabular-nums">{formatBRL(valorPago(pedido))}</span></div>
+                <div className="flex items-center justify-between font-semibold text-amber-800"><span>Falta receber</span><span className="tabular-nums">{formatBRL(valorRestante(pedido))}</span></div>
+                {pedido.previsao_recebimento && <p className="mt-1 text-xs text-slate-500">Lembrete: receber até {dataCurta(pedido.previsao_recebimento)}</p>}
+              </div>}
             </div>
           </section>
 

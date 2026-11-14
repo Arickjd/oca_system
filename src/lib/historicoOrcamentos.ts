@@ -3,10 +3,11 @@ import { diaLocal, type Periodo } from "./periodoOrcamentos";
 
 export function separarHistorico(pedidos: Pedido[]) {
   const ativos = pedidos.filter(p => !p.excluido_em);
-  return {
-    pendentes: ativos.filter(p => p.status_pagamento !== "finalizado"),
-    vendas: ativos.filter(p => p.status_pagamento === "finalizado"),
-  };
+  const abertos = ativos.filter(p => (p.status_pagamento ?? "pendente") === "pendente");
+  const parciais = ativos.filter(p => p.status_pagamento === "parcial");
+  const vendas = ativos.filter(p => p.status_pagamento === "finalizado");
+  // Relatórios tratam parciais como ainda não vendidos.
+  return { abertos, parciais, pendentes: [...abertos, ...parciais], vendas };
 }
 
 export function resumoLucroVendas(pedidos: Pedido[]) {
@@ -23,7 +24,7 @@ export function resumoLucroVendas(pedidos: Pedido[]) {
 
 export function diasPendentes(pedidos: Pedido[]) {
   const dias = new Map<string, number>();
-  for (const p of separarHistorico(pedidos).pendentes) {
+  for (const p of separarHistorico(pedidos).abertos) {
     const dia = diaLocal(p.created_at);
     if (dia) dias.set(dia, (dias.get(dia) ?? 0) + 1);
   }
