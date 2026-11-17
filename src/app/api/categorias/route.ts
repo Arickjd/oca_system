@@ -1,6 +1,6 @@
-import { verificarAcessoApi } from "@/lib/auth-servidor";
+import { verificarAcessoApi, obterSessao } from "@/lib/auth-servidor";
 import { NextResponse } from "next/server";
-import { getCategorias, criarCategoria } from "@/lib/db";
+import { getCategorias, criarCategoria, registrarAuditoria } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,19 @@ export async function POST(req: Request) {
   }
   try {
     const categoria = await criarCategoria(nome);
+    const sessao = await obterSessao();
+    if (sessao) {
+      await registrarAuditoria({
+        usuario: sessao.usuario,
+        acao: "categoria.criada",
+        titulo: "Categoria criada",
+        alvo: categoria.nome,
+        detalhes: [
+          { rotulo: "Categoria", valor: categoria.nome },
+          { rotulo: "Criada por", valor: sessao.usuario.nome },
+        ],
+      });
+    }
     revalidatePath("/gerenciar-produtos");
     revalidatePath("/categorias");
     revalidatePath("/produtos");
