@@ -2,7 +2,7 @@
 
 Aplicação web **mobile-first** para a equipe da OCA Distribuidora montar pedidos de
 atacado pelo celular e gerar um **orçamento em formato A4 (recibo)**. O acesso exige
-login; todos os usuários têm as mesmas funções, sem painel administrativo ou controle de estoque.
+login; cada usuário tem um papel (**administrador** ou operador): o administrador edita/exclui vendas, vê custos e relatórios restritos e o registro de atividades; o operador usa o fluxo de pedidos.
 
 Baseada na especificação em [`Especificacao_Distribuidora_Bebidas.md`](Especificacao_Distribuidora_Bebidas.md),
 com o fluxo simplificado para uso interno do proprietário.
@@ -100,6 +100,7 @@ exigem migração do banco.
 - A página individual do orçamento mostra o resumo do parcial, o histórico de recebimentos e o mesmo formulário; o cupom de 80 mm e o PDF A4 passam a exibir `Recebimento parcial`, `Já pago` e `Falta receber`.
 - Nas páginas de orçamentos, o cabeçalho exibe as abas **Em aberto** e **Recebimento parcial** com a quantidade de cada uma, na mesma linha do usuário, mantendo o cabeçalho com duas linhas; no celular o prefixo “Usuário:” é omitido para as abas caberem.
 - Na home, o cabeçalho mostra um sino com a quantidade de **Avisos de recebimento** abaixo da logo; ao abrir, o painel aparece como dropdown (não aumenta o cabeçalho) e lista os parciais com prazo, do mais urgente para o mais distante, destacando os atrasados e o valor restante.
+- Só para o **administrador**, a home exibe o **Registro de atividades**: os lançamentos em ordem cronológica (mais recentes primeiro), com o título no formato `operação - cliente #número` (ou operação - produto/categoria), data e hora e usuário na linha de baixo; ao clicar, o item expande os detalhes (valores, forma de pagamento, antes/depois). São auditados criação, edição e exclusão de orçamento, venda efetivada, recebimento parcial, quitação, CRUD de produtos e de categorias. Operadores não veem a seção; os dados ficam em `data/auditoria.json` (ou na coleção `auditoria`, no Postgres).
 - A edição de um orçamento parcial não pode reduzir o total para menos do que já foi recebido; o sistema bloqueia com uma mensagem.
 
 - Ao final de `/relatorios`, Exportar banco de dados baixa um XLSX completo sem aplicar o filtro de datas. Abas: Resumo, Produtos, Categorias, Orçamentos, Itens, Configurações, Contadores e Registros brutos.

@@ -33,3 +33,6 @@ next-env.d.ts
 /data/pedidos.local.json
 /tmp/pdfs/
 /tmp/xlsx/
+
+# Log de auditoria (dados locais de execução)
+/data/auditoria.json

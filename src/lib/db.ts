@@ -14,6 +14,7 @@ import type {
 import { valorPago, valorRestante } from "./pagamentos";
 import { dataValida, diaLocal } from "./periodoOrcamentos";
 import { formatBRL } from "./format";
+import type { EventoAuditoria } from "./auditoria";
 
 // PostgreSQL quando DATABASE_URL estiver configurada; JSON apenas para uso local.
 // Na Vercel, uma configuração ausente interrompe a operação em vez de perder dados.
@@ -209,6 +210,36 @@ export async function excluirProduto(id: string): Promise<boolean> {
 }
 
 /* ------------------------------- Pedidos ------------------------------ */
+
+// Log de auditoria: gravação tolerante a falhas, para nunca derrubar a ação auditada.
+export async function registrarAuditoria(evento: Omit<EventoAuditoria, "id" | "em">): Promise<void> {
+  const registro: EventoAuditoria = { ...evento, id: randomUUID(), em: new Date().toISOString() };
+  try {
+    if (postgres.usarPostgres()) {
+      await postgres.inserir("auditoria", registro);
+      return;
+    }
+    const run = writeChain.then(async () => {
+      await ensureDir();
+      const eventos = await readData<EventoAuditoria[]>("auditoria.json", []);
+      eventos.push(registro);
+      const dest = path.join(DATA_DIR, "auditoria.json");
+      await fs.writeFile(dest + ".tmp", JSON.stringify(eventos, null, 2), "utf8");
+      await fs.rename(dest + ".tmp", dest);
+    });
+    writeChain = run.catch(() => undefined);
+    await run;
+  } catch (error) {
+    console.error("Falha ao registrar auditoria:", error);
+  }
+}
+
+// Mais recentes primeiro; o limite evita carregar o histórico inteiro na home.
+export async function getAuditoria(limite = 100): Promise<EventoAuditoria[]> {
+  const eventos = await readData<EventoAuditoria[]>("auditoria.json", []);
+  return [...eventos].sort((a, b) => b.em.localeCompare(a.em)).slice(0, Math.max(1, limite));
+}
+
 
 export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao">>) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
