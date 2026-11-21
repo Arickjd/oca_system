@@ -30,6 +30,19 @@ Sem a variável, o modo local continua usando data/*.json.
 Se ocorrer o erro PostgreSQL 42P01 (tabela inexistente), execute a migração
 usando a conexão do mesmo banco/branch configurado no ambiente Vercel.
 Não basta criar o banco no Neon: npm run db:migrate cria as tabelas e importa os dados.
+
+Bancos criados antes do **log de auditoria** têm um CHECK em `oca_registros` que
+aceita apenas `produtos`, `categorias`, `pedidos` e `config`; a gravação da
+coleção `auditoria` falha nesse CHECK e a seção da home fica vazia. Rode
+`npm run db:migrate` (ou, no SQL editor do Neon, recrie a constraint) para liberar
+a coleção — a migração só altera a constraint e não apaga registros:
+
+```sql
+ALTER TABLE oca_registros DROP CONSTRAINT IF EXISTS oca_registros_colecao_check;
+ALTER TABLE oca_registros ADD CONSTRAINT oca_registros_colecao_check
+  CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria'));
+```
+
 O layout da loja é dinâmico, inclusive carrinho e checkout, para não acessar
 o banco durante o build. Isso permite compilar sem conexão, mas o banco precisa
 estar migrado para abrir as páginas depois da publicação.
@@ -50,9 +63,9 @@ Use os recursos de backup/exportação do provedor para proteger os dados do ban
 Se edições ou pedidos de um deploy antigo nunca foram gravados com sucesso,
 não há como recuperá-los do código; a importação preserva os JSONs disponíveis.
 
-O aplicativo continua sem login por solicitação do projeto. Para uso exclusivo
-do proprietário em um endereço público, restrinja o acesso ao deployment na
-plataforma ou adicione autenticação antes de divulgar o endereço.
+O aplicativo exige login (sessão JWT) e o registro de atividades é visível apenas
+para o usuário com papel de administrador. Para uso exclusivo do proprietário em
+um endereço público, restrinja o acesso ao deployment na plataforma.
 
 ## Testes
 

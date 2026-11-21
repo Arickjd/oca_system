@@ -49,21 +49,43 @@ async function main() {
     store = await load(); // Simula uma nova instância após redeploy.
     assert.equal((await store.listar("produtos")).length, 2);
     assert.equal((await store.listar("pedidos")).length, 21);
+
+    // A coleção de auditoria precisa passar pelo CHECK de oca_registros.
+    await store.inserir("auditoria", { id: "aud-1", em: new Date().toISOString(), titulo: "Teste", alvo: "#1", detalhes: [] });
+    assert.equal((await store.listar("auditoria")).length, 1);
+
+    // Simula uma base criada antes do log (CHECK sem 'auditoria') e aplica a migração.
+    const baseAntiga = new PGlite();
+    try {
+      await baseAntiga.exec(`CREATE TABLE oca_registros (
+        colecao text NOT NULL CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config')),
+        id text NOT NULL, dados jsonb NOT NULL CHECK (jsonb_typeof(dados) = 'object'),
+        PRIMARY KEY (colecao, id)
+      )`);
+      await assert.rejects(() => baseAntiga.query("INSERT INTO oca_registros (colecao, id, dados) VALUES ('auditoria', 'a1', '{}'::jsonb)"));
+      for (const query of schema.filter(item => item.startsWith("ALTER TABLE oca_registros"))) await baseAntiga.exec(query);
+      await baseAntiga.query("INSERT INTO oca_registros (colecao, id, dados) VALUES ('auditoria', 'a1', '{}'::jsonb)");
+      assert.equal((await baseAntiga.query("SELECT COUNT(*)::integer AS n FROM oca_registros WHERE colecao = 'auditoria'")).rows[0].n, 1);
+    } finally {
+      await baseAntiga.close();
+    }
     await importar();
     assert.equal((await store.inserirPedido({ id: "ultimo", numero: 0, itens: [] })).numero, 61);
     await store.atualizar("produtos", produto.id, { nome: "Mudou novamente" });
     assert.equal((await store.buscar("pedidos", "pedido-0")).itens[0].produto_nome, "Snapshot");
     assert.equal(await store.atualizar("produtos", "inexistente", { nome: "x" }), undefined);
-    const filename = path.join(process.cwd(), "src/lib/db.ts");
-    const facade = new Module(filename, module);
-    facade.filename = filename; facade.paths = module.paths;
-    facade.require = name => name === "./postgres" ? store :
-      name === "node:fs" ? { promises: new Proxy({}, { get() { throw new Error("Acesso indevido ao disco em modo PostgreSQL"); } }) } :
-      require(name);
-    facade._compile(ts.transpileModule(await fs.readFile(filename, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
-    }).outputText, filename);
-    const api = facade.exports;
+    const { criarLoader } = require("./load-ts.cjs");
+    const api = criarLoader(process.cwd(), {
+      "./postgres": store,
+      "node:fs": new Proxy({}, { get() { throw new Error("Acesso indevido ao disco em modo PostgreSQL"); } }),
+    })("src/lib/db.ts");
+    await api.registrarAuditoria({ usuario: { id: "jardel", nome: "Jardel" }, acao: "teste", titulo: "Recebimento parcial", alvo: "Mercado X #12", detalhes: [{ rotulo: "Valor", valor: "R$ 1,00" }] });
+    const auditoria = await api.getAuditoria(10);
+    assert.equal(auditoria.length, 2);
+    assert.equal(auditoria[0].titulo, "Recebimento parcial");
+    assert.equal(auditoria[0].alvo, "Mercado X #12");
+    assert.equal(auditoria[0].detalhes[0].valor, "R$ 1,00");
+    assert.ok(auditoria[0].id && auditoria[0].em);
     await require("./test-categorias.cjs")(api);
     assert.equal((await api.getProdutos()).length, 2);
     const criado = await api.criarProduto({ nome: "Via aplicação", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
