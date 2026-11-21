@@ -43,7 +43,7 @@ ALTER TABLE oca_registros ADD CONSTRAINT oca_registros_colecao_check
   CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria'));
 ```
 
-O layout da loja é dinâmico, inclusive carrinho e checkout, para não acessar
+O layout da loja é dinâmico, inclusive carrinho, para não acessar
 o banco durante o build. Isso permite compilar sem conexão, mas o banco precisa
 estar migrado para abrir as páginas depois da publicação.
 

@@ -11,6 +11,10 @@ const nextConfig = {
     // Não bloquear o build por lint; o MVP prioriza funcionamento.
     ignoreDuringBuilds: true,
   },
+  // O checkout foi incorporado ao carrinho; links antigos continuam funcionando.
+  async redirects() {
+    return [{ source: "/checkout", destination: "/carrinho", permanent: true }];
+  },
 };
 
 export default nextConfig;

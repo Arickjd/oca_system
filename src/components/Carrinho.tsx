@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { SalvarProduto } from "@/components/SalvarProduto";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
@@ -8,6 +10,7 @@ import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import type { Produto } from "@/lib/types";
 
 export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | "custo_pack" | "preco_pack">[] }) {
+  const router = useRouter();
   const {
     itens,
     totalValor,
@@ -15,8 +18,50 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
     atualizarItem,
     definirQuantidade,
     remover,
+    limpar,
     carregado,
   } = useCart();
+
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Finaliza na própria página do carrinho: cria o orçamento e abre o recibo.
+  async function finalizar() {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const res = await fetch("/api/pedidos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente_nome: nome,
+          telefone,
+          observacao,
+          itens: itens.map((i) => ({
+            produto_id: i.produto_id,
+            produto_nome: i.nome,
+            modo: "pacote",
+            pack_quantidade: i.pack_quantidade,
+            quantidade: i.quantidade,
+            preco_unitario: i.preco_unitario,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Falha ao registrar o pedido.");
+      }
+      const pedido = await res.json();
+      limpar();
+      router.push(`/orcamento/${pedido.id}`);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Erro inesperado.");
+      setEnviando(false);
+    }
+  }
 
   if (!carregado) {
     return <div className="py-16 text-center text-slate-400 text-sm">Carregando…</div>;
@@ -191,6 +236,45 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
         })}
       </div>
 
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
+        <div>
+          <h2 className="font-semibold text-slate-800">Dados do cliente</h2>
+          <p className="text-xs text-slate-500">Todos os campos são opcionais.</p>
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm text-slate-600">Nome</span>
+          <input
+            id="cliente-nome"
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
+            placeholder="Nome do cliente"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm text-slate-600">Telefone</span>
+          <input
+            id="cliente-telefone"
+            value={telefone}
+            onChange={(event) => setTelefone(event.target.value)}
+            inputMode="tel"
+            placeholder="(00) 00000-0000"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm text-slate-600">Observação</span>
+          <textarea
+            id="cliente-observacao"
+            value={observacao}
+            onChange={(event) => setObservacao(event.target.value)}
+            rows={2}
+            placeholder="Ex: entregar pela manhã"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500 resize-none"
+          />
+        </label>
+      </section>
+
       <div className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between">
         <span className="text-slate-500">Total</span>
         <span className="text-2xl font-bold text-slate-900 tabular-nums">
@@ -198,13 +282,24 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
         </span>
       </div>
 
+      {erro && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+          {erro}
+        </p>
+      )}
+
       <div className="flex flex-col gap-2">
-        <Link
-          href="/checkout"
-          className="rounded-xl bg-slate-900 text-white text-center px-5 py-3.5 font-semibold active:scale-[0.99] transition"
+        <button
+          type="button"
+          disabled={enviando}
+          onClick={finalizar}
+          className="rounded-xl bg-slate-900 text-white text-center px-5 py-3.5 font-semibold active:scale-[0.99] transition disabled:opacity-60"
         >
-          Finalizar pedido
-        </Link>
+          {enviando ? "Gerando orçamento…" : "Finalizar pedido"}
+        </button>
+        <p className="text-center text-xs text-slate-500">
+          O orçamento é gerado automaticamente ao finalizar.
+        </p>
         <Link
           href="/produtos"
           className="rounded-xl bg-white border border-slate-200 text-slate-700 text-center px-5 py-3 font-medium"

@@ -45,7 +45,7 @@ npm run start
 ```
 src/
   app/
-    (loja)/           # catálogo, edição do pedido e checkout
+    (loja)/           # catálogo, carrinho e edição do pedido
     orcamento/[id]/   # recibo A4 (imprimir / PDF / WhatsApp / compartilhar)
     api/              # leitura do catálogo/configuração e registro de pedidos
   components/         # interface do catálogo e do pedido
@@ -60,7 +60,7 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 |-----------|------|
 | RF01/RF02 – Catálogo com filtro por categoria e busca | `/` |
 | Carrinho: editar nome, preço, quantidade e tamanho do pacote | `/carrinho` |
-| RF07 – Registrar pedido | `/checkout` → `POST /api/pedidos` |
+| RF07 – Registrar pedido (finaliza e gera o orçamento na mesma tela) | `/carrinho` → `POST /api/pedidos` |
 | RF08/RF09 – Gerar e baixar orçamento (A4, imprimir/salvar PDF) | `/orcamento/[id]` |
 | RF15 – Compartilhar pedido (WhatsApp / Web Share) | `/orcamento/[id]` |
 

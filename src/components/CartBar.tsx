@@ -9,10 +9,9 @@ export function CartBar() {
   const { totalItens, totalValor } = useCart();
   const pathname = usePathname();
 
-  // Não mostrar no carrinho/checkout nem quando vazio
+  // Não mostrar no carrinho nem quando vazio
   const esconder =
     pathname?.startsWith("/carrinho") ||
-    pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/gerenciar-produtos") ||
     pathname?.startsWith("/orcamentos") ||
     pathname?.startsWith("/vendas") ||
