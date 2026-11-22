@@ -32,6 +32,7 @@
 .item { padding: 7px 0; border-bottom: 1px dotted #999; break-inside: avoid; }
 .item:last-child { border-bottom: none; padding-bottom: 0; }
 .nome { font-weight: 700; }
+.apresentacao { font-size: 10.5px; }
 .linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .linha > :last-child { flex-shrink: 0; text-align: right; }
 .total { font-size: 14px; margin: 4px 0; }

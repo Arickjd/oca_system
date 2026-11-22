@@ -5,6 +5,7 @@ import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
 import { descontoTotalPedido } from "./descontos";
 import { valorPago, valorRestante } from "./pagamentos";
+import { descricaoPacote } from "./descricaoPacote";
 
 export { descontoTotalPedido };
 
@@ -38,7 +39,7 @@ export function gerarOrcamentoPdf(pedido: Pedido, config: Config, logo: Uint8Arr
     head: [["Nº", "Produto", "Qtd", "Valor por item", "Subtotal"]],
     body: pedido.itens.map((item, index) => [
       String(index + 1),
-      item.produto_nome,
+      item.produto_nome + (descricaoPacote(item.pack_quantidade) ? `\n${descricaoPacote(item.pack_quantidade)}` : ""),
       String(item.quantidade),
       formatBRL(item.preco_unitario) + ((item.desconto_unitario ?? 0) > 0 ? "\nDesconto aplicado" : ""),
       formatBRL(item.subtotal),
