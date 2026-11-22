@@ -7,7 +7,7 @@
     "preco_pack": 30,
     "pack_quantidade": 6,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/pacote_latas.jpeg",
     "categoria_id": "9805506b-592a-47ac-9119-ccaf3998df78",
     "ativo": true,
     "created_at": "2026-07-14T00:06:26.448Z",
@@ -164,10 +164,11 @@
     "preco_pack": 36,
     "pack_quantidade": 6,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/doces.jpeg",
     "categoria_id": "87c64bec-883d-49e7-8e2c-0bf22b82924c",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": null
   },
   {
     "id": "8a210b4d-2348-4621-8ecb-f481cb32b405",
@@ -268,10 +269,11 @@
     "preco_pack": 180,
     "pack_quantidade": 12,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/caixa_pizza.jpeg",
     "categoria_id": "f2022834-e81f-4e08-b3dd-ab9822aa63e0",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": null
   },
   {
     "id": "36c01f7c-e29c-4b28-86b7-4ce3777f1844",
@@ -281,10 +283,11 @@
     "preco_pack": 192,
     "pack_quantidade": 6,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/caixa_pizza.jpeg",
     "categoria_id": "f2022834-e81f-4e08-b3dd-ab9822aa63e0",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": null
   },
   {
     "id": "a54b14dd-1b94-4928-a654-4507a52ab74b",
@@ -385,10 +388,11 @@
     "preco_pack": 72,
     "pack_quantidade": 6,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/pacote_garrafas.jpeg",
     "categoria_id": "782c4f25-d62a-4b8f-8f08-9fdc8cd937b7",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": null
   },
   {
     "id": "0065a5e7-13d9-42b9-afca-4d119a5b8abe",
@@ -1438,10 +1442,11 @@
     "preco_pack": 66,
     "pack_quantidade": 6,
     "unidade": "un",
-    "imagem_url": "",
+    "imagem_url": "/icons/produtos/garrafa_vidro.jpeg",
     "categoria_id": "9805506b-592a-47ac-9119-ccaf3998df78",
     "ativo": true,
-    "created_at": "2026-07-14T00:06:26.448Z"
+    "created_at": "2026-07-14T00:06:26.448Z",
+    "custo_pack": null
   },
   {
     "id": "bfbabf7f-7677-4c2c-bb93-77a05c82322f",
