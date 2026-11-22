@@ -13,7 +13,15 @@ const nextConfig = {
   },
   // O checkout foi incorporado ao carrinho; links antigos continuam funcionando.
   async redirects() {
-    return [{ source: "/checkout", destination: "/carrinho", permanent: true }];
+    return [
+      { source: "/checkout", destination: "/carrinho", permanent: true },
+      // Nomes antigos dos ícones de produto (arquivos renomeados).
+      { source: "/icons/produtos/marmita.jpeg", destination: "/icons/produtos/embalagem_fechada.jpeg", permanent: false },
+      { source: "/icons/produtos/embalagem.jpeg", destination: "/icons/produtos/pacote.jpeg", permanent: false },
+      { source: "/icons/produtos/embalagens_delivery.png", destination: "/icons/produtos/embalagens.png", permanent: false },
+      { source: "/icons/produtos/pacote_garrafa_6.jpeg", destination: "/icons/produtos/pacote_garrafas.jpeg", permanent: false },
+      { source: "/icons/produtos/pacote_lata_6.jpeg", destination: "/icons/produtos/pacote_latas.jpeg", permanent: false },
+    ];
   },
 };
 

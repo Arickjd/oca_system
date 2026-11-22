@@ -2,6 +2,7 @@
 
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
+import { imagemDoProduto } from "@/lib/imagensProduto";
 import type { Produto } from "@/lib/types";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 
@@ -88,35 +89,19 @@ export function ProdutoCard({
       preco_unitario: produto.preco_pack,
       preco_original: produto.preco_pack,
       pack_quantidade: produto.pack_quantidade,
-      imagem_url: produto.imagem_url,
+      imagem_url: imagemDoProduto(produto),
       quantidade: 1,
     });
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col gap-3">
       <div className="flex gap-3">
-        {produto.imagem_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={produto.imagem_url}
-            alt={produto.nome}
-            className="w-14 h-14 rounded-lg object-cover bg-slate-100 shrink-0"
-          />
-        ) : (
-          <div className="w-14 h-14 rounded-lg bg-slate-100 grid place-items-center text-slate-300 shrink-0">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              className="w-7 h-7"
-            >
-              <path d="M9 2h6v3l1.5 2.5A4 4 0 0 1 17 10v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9a4 4 0 0 1 .5-2.5L9 5V2Z" />
-              <path d="M7.5 12h9" />
-            </svg>
-          </div>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imagemDoProduto(produto)}
+          alt=""
+          className="w-14 h-14 rounded-lg object-cover bg-slate-100 shrink-0"
+        />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-slate-900 text-sm leading-tight line-clamp-2">
             {produto.nome}

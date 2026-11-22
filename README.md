@@ -78,6 +78,13 @@ quantidade de produtos de cada categoria e permite criar ou excluir. Excluir uma
 categoria move os produtos dela (inclusive os excluídos) para **Outros**, que é o
 destino padrão e não pode ser excluída.
 
+Cada produto pode ter um **ícone predefinido**, escolhido no cadastro/edição em
+um campo “Ícone do produto” que abre (e fecha ao escolher) uma grade com a opção
+**Padrão** e 21 imagens (`public/icons/produtos`: caixa, lata, garrafa, sacola,
+pacote de sacolas, marmita unidade/atacado etc.). Produto sem ícone — inclusive todos os cadastrados antes deste
+recurso — exibe `padrao.png` no catálogo, na busca e no carrinho. A API só aceita
+vazio (padrão) ou um dos ícones da lista.
+
 O preço negociado no carrinho vale somente para aquela venda: não altera o preço
 global do produto. Nome e itens por pacote continuam atualizando o catálogo.
 Cada item do orçamento guarda o preço original e o desconto por pacote/unidade;

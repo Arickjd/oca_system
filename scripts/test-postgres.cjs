@@ -94,6 +94,21 @@ async function main() {
     assert.equal((await api.getProduto(criado.id)).descricao, "Descrição inicial");
     await api.atualizarProduto(criado.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12, descricao: "Nova descrição" });
     assert.equal((await api.getProduto(criado.id)).descricao, "Nova descrição");
+
+    // Ícone do produto: persiste no banco e só aceita os predefinidos.
+    const comIcone = await api.criarProduto({ nome: "Com ícone", preco_pack: 10, pack_quantidade: 6, categoria_id: "", imagem_url: "/icons/produtos/lata.jpeg" });
+    assert.equal(comIcone.imagem_url, "/icons/produtos/lata.jpeg");
+    await api.atualizarProduto(comIcone.id, { nome: "Com ícone", pack_quantidade: 6, imagem_url: "/icons/produtos/caixa.jpeg" });
+    assert.equal((await api.getProduto(comIcone.id)).imagem_url, "/icons/produtos/caixa.jpeg");
+    const validar = criarLoader(process.cwd(), { "./db": api })("src/lib/validarProduto.ts").validarProduto;
+    await assert.rejects(() => validar({ nome: "X", preco_pack: 1, pack_quantidade: 6, categoria_id: "", imagem_url: "https://exemplo.com/x.png" }), /ícone/i);
+    assert.equal((await validar({ nome: "X", preco_pack: 1, pack_quantidade: 6, categoria_id: "" })).imagem_url, undefined);
+    assert.equal((await validar({ nome: "X", preco_pack: 1, pack_quantidade: 6, categoria_id: "", imagem_url: "/icons/produtos/pote.jpeg" })).imagem_url, "/icons/produtos/pote.jpeg");
+    // Nomes antigos de arquivo são normalizados para os novos.
+    assert.equal((await validar({ nome: "X", preco_pack: 1, pack_quantidade: 6, categoria_id: "", imagem_url: "/icons/produtos/embalagem.jpeg" })).imagem_url, "/icons/produtos/pacote.jpeg");
+    const { imagemDoProduto } = criarLoader(process.cwd())("src/lib/imagensProduto.ts");
+    assert.equal(imagemDoProduto({ imagem_url: "/icons/produtos/pacote_garrafa_6.jpeg" }), "/icons/produtos/pacote_garrafas.jpeg");
+    assert.equal(imagemDoProduto({}), "/icons/produtos/padrao.png");
     const pedido = await api.createPedido({ itens: [{
       produto_id: criado.id, produto_nome: "Atualizado", modo: "pacote", quantidade: 3, preco_unitario: 15, pack_quantidade: 12,
     }] });

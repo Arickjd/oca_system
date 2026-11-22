@@ -6,6 +6,7 @@ import { useState } from "react";
 import { SalvarProduto } from "@/components/SalvarProduto";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
+import { imagemDoProduto } from "@/lib/imagensProduto";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import type { Produto } from "@/lib/types";
 
@@ -119,13 +120,17 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
               className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold text-slate-900 text-sm">
-                    Item do pedido
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Altere os dados deste item se necessário.
-                  </p>
+                <div className="flex min-w-0 items-start gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagemDoProduto(item)} alt="" className="h-11 w-11 shrink-0 rounded-lg bg-slate-100 object-cover" />
+                  <div>
+                    <h2 className="font-semibold text-slate-900 text-sm">
+                      Item do pedido
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Altere os dados deste item se necessário.
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
