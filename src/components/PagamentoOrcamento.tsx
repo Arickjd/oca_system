@@ -7,6 +7,7 @@ import { situacaoPrazo } from "@/lib/pagamentos";
 import { dataCurta } from "@/lib/periodoOrcamentos";
 import type { FormaPagamento, PagamentoParcial, StatusPagamento } from "@/lib/types";
 import { PagamentoParcialForm } from "./PagamentoParcialForm";
+import { ConfirmarPagamento } from "./ConfirmarPagamento";
 
 const nomes: Record<FormaPagamento, string> = { pix: "Pix", cartao: "Cartão", dinheiro: "Dinheiro" };
 const opcoes: { valor: FormaPagamento; nome: string; detalhe: string }[] = [
@@ -34,8 +35,9 @@ export function PagamentoOrcamento({ id, finalizado, status, forma, revisao, val
   const [erro, setErro] = useState("");
   const [confirmada, setConfirmada] = useState<FormaPagamento | null>(null);
   const [abrirParcial, setAbrirParcial] = useState(false);
+  const [confirmando, setConfirmando] = useState<FormaPagamento | null>(null);
 
-  // Selecionar a forma de pagamento já efetiva a venda; não há etapa de confirmação.
+  // A forma escolhida abre uma confirmação antes de efetivar a venda.
   async function efetivar(escolhida: FormaPagamento) {
     if (salvando) return;
     setSalvando(escolhida); setErro("");
@@ -48,11 +50,13 @@ export function PagamentoOrcamento({ id, finalizado, status, forma, revisao, val
         throw new Error(data.error || "Não foi possível efetivar a venda. Tente novamente.");
       }
       setConfirmada(escolhida);
+      setConfirmando(null);
       router.refresh();
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Falha ao efetivar a venda.");
     } finally {
       setSalvando(null);
+      setConfirmando(null);
     }
   }
 
@@ -75,11 +79,11 @@ export function PagamentoOrcamento({ id, finalizado, status, forma, revisao, val
 
     {previsao && <p className={`mt-1 text-sm font-medium ${prazo ? tomPrazo[prazo.tom] : "text-slate-500"}`}>Lembrete: receber até {dataCurta(previsao)}{prazo ? ` · ${prazo.texto}` : ""}</p>}
 
-    <p className="mt-1 text-sm text-slate-500">Toque na forma de pagamento para {parcial ? "quitar o restante e efetivar a venda" : "efetivar a venda"}. A confirmação é imediata.</p>
+    <p className="mt-1 text-sm text-slate-500">Toque na forma de pagamento para {parcial ? "quitar o restante e efetivar a venda" : "efetivar a venda"}; você confirma antes de finalizar.</p>
 
     <div role="group" aria-label="Forma de pagamento" className="mt-3 grid grid-cols-3 gap-2">
       {opcoes.map(opcao => <button key={opcao.valor} type="button" disabled={salvando !== null}
-        aria-label={`Efetivar venda com ${opcao.nome}`} onClick={() => efetivar(opcao.valor)}
+        aria-label={`Efetivar venda com ${opcao.nome}`} onClick={() => setConfirmando(opcao.valor)}
         className="flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-300 bg-white px-2 py-2 text-center transition hover:border-emerald-600 hover:bg-emerald-50 active:scale-[0.98] disabled:opacity-60">
         <span className="text-sm font-semibold text-slate-900">{salvando === opcao.valor ? "Efetivando…" : opcao.nome}</span>
         <span className="hidden text-[11px] leading-tight text-slate-500 sm:block">{opcao.detalhe}</span>
@@ -92,6 +96,8 @@ export function PagamentoOrcamento({ id, finalizado, status, forma, revisao, val
     </button>
 
     {abrirParcial && <PagamentoParcialForm id={id} restante={restante} revisao={revisao} onFechar={() => setAbrirParcial(false)} />}
+    {confirmando && <ConfirmarPagamento forma={confirmando} valor={parcial ? restante : valor} parcial={parcial} ocupado={salvando !== null}
+      onConfirmar={() => efetivar(confirmando)} onCancelar={() => { if (!salvando) setConfirmando(null); }} />}
     {erro && <p role="alert" className="mt-2 text-sm text-red-700">{erro}</p>}
 
     {!!pagamentos?.length && <div className="mt-3 border-t border-amber-200 pt-2">

@@ -31,9 +31,8 @@ export default async function OrcamentoPage({ params }: Params) {
           <Link href={pedido.status_pagamento === "finalizado" ? "/vendas" : "/orcamentos"} className="inline-block mb-3 text-sm underline">{pedido.status_pagamento === "finalizado" ? "Voltar às vendas" : "Voltar aos orçamentos"}</Link>
           <ReciboAcoes
             key={pedido.revisao ?? 0}
-            pedidoId={pedido.id}
-            numero={pedido.numero}
-            shareTitle={`${config.distribuidora_nome} — Orçamento #${pedido.numero}`}
+            pedido={pedido}
+            config={config}
           />
         </div>
       </div>

@@ -59,3 +59,22 @@ input[type="search"]::-webkit-search-decoration {
     margin: 12mm;
   }
 }
+
+/* Impressão do cupom a partir da própria página do orçamento: esconde a página
+   inteira e deixa visível apenas o cupom no portal (classe posta pelo botão). */
+@media print {
+  html.imprimindo-cupom body > *:not(#cupom-print-root) {
+    display: none !important;
+  }
+  html.imprimindo-cupom #cupom-print-root {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  html.imprimindo-cupom #cupom-print-root #cupom-conteudo {
+    width: 72mm !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+}

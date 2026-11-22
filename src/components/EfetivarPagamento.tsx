@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FormaPagamento } from "@/lib/types";
 import { PagamentoParcialForm } from "./PagamentoParcialForm";
+import { ConfirmarPagamento } from "./ConfirmarPagamento";
 
 const opcoes: { valor: FormaPagamento; nome: string }[] = [
   { valor: "pix", nome: "Pix" },
@@ -11,7 +12,7 @@ const opcoes: { valor: FormaPagamento; nome: string }[] = [
   { valor: "dinheiro", nome: "Dinheiro" },
 ];
 
-// Efetiva a venda direto na lista, sem abrir o orçamento. O clique já confirma.
+// Efetiva a venda direto na lista, sem abrir o orçamento. O toque pede confirmação.
 // "Parcial" abre o formulário de recebimento parcial no próprio card.
 export function EfetivarPagamento({ id, numero, revisao, restante, parcial = false }: {
   id: string; numero: number; revisao: number; restante: number; parcial?: boolean;
@@ -20,6 +21,7 @@ export function EfetivarPagamento({ id, numero, revisao, restante, parcial = fal
   const [salvando, setSalvando] = useState<FormaPagamento | null>(null);
   const [erro, setErro] = useState("");
   const [abrirParcial, setAbrirParcial] = useState(false);
+  const [confirmando, setConfirmando] = useState<FormaPagamento | null>(null);
 
   async function efetivar(forma: FormaPagamento) {
     if (salvando) return;
@@ -32,17 +34,19 @@ export function EfetivarPagamento({ id, numero, revisao, restante, parcial = fal
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Não foi possível efetivar a venda. Tente novamente.");
       }
+      setConfirmando(null);
       router.refresh();
     } catch (error) {
       setErro(error instanceof Error ? error.message : "Falha ao efetivar a venda.");
       setSalvando(null);
+      setConfirmando(null);
     }
   }
 
   return <div className="flex w-full min-w-0 flex-col gap-2">
     <div role="group" aria-label={`Efetivar orçamento ${numero} com`} className="grid grid-cols-4 gap-1.5">
       {opcoes.map(opcao => <button key={opcao.valor} type="button" disabled={salvando !== null}
-        aria-label={`Efetivar orçamento ${numero} com ${opcao.nome}`} onClick={() => efetivar(opcao.valor)}
+        aria-label={`Efetivar orçamento ${numero} com ${opcao.nome}`} onClick={() => setConfirmando(opcao.valor)}
         className="min-h-10 rounded-lg bg-emerald-700 px-1 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800 active:scale-[0.98] disabled:opacity-60 sm:text-sm">
         {salvando === opcao.valor ? "Efetivando…" : opcao.nome}
       </button>)}
@@ -52,6 +56,8 @@ export function EfetivarPagamento({ id, numero, revisao, restante, parcial = fal
       </button>
     </div>
     {abrirParcial && <PagamentoParcialForm id={id} restante={restante} revisao={revisao} onFechar={() => setAbrirParcial(false)} />}
+    {confirmando && <ConfirmarPagamento forma={confirmando} valor={restante} parcial={parcial} ocupado={salvando !== null}
+      onConfirmar={() => efetivar(confirmando)} onCancelar={() => { if (!salvando) setConfirmando(null); }} />}
     {erro && <p role="alert" className="text-sm text-red-700">{erro}</p>}
   </div>;
 }
