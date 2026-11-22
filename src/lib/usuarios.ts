@@ -3,6 +3,7 @@ export const USUARIOS = [
   { id: "jairo", nome: "Jairo", papel: "operador" },
   { id: "gisele", nome: "Gisele", papel: "operador" },
   { id: "keylane", nome: "Keylane", papel: "operador" },
+  { id: "computador", nome: "Computador", papel: "operador" },
 ] as const;
 
 export type Usuario = (typeof USUARIOS)[number];
