@@ -4,6 +4,7 @@ import { formasPagamento } from "@/lib/periodoOrcamentos";
 import { chavePix, titularPix } from "@/lib/pix";
 import { descontoTotalPedido } from "@/lib/descontos";
 import { valorPago, valorRestante } from "@/lib/pagamentos";
+import { descricaoPacote } from "@/lib/descricaoPacote";
 import styles from "./CupomConteudo.module.css";
 
 export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Config }) {
@@ -29,6 +30,7 @@ export function CupomConteudo({ pedido, config }: { pedido: Pedido; config: Conf
       <ol className={styles.itens}>
         {pedido.itens.map((item, index) => <li key={item.id} className={styles.item}>
           <p className={styles.nome}>{index + 1}. {item.produto_nome}</p>
+          {descricaoPacote(item.pack_quantidade) && <p className={styles.apresentacao}>{descricaoPacote(item.pack_quantidade)}</p>}
           {(item.desconto_unitario ?? 0) > 0 && <p>Desconto aplicado</p>}
           <div className={styles.linha}>
             <span>{item.quantidade} {item.modo === "pacote" ? "pct" : "un"} × {formatBRL(item.preco_unitario)}</span>

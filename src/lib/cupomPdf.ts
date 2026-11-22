@@ -4,6 +4,7 @@ import { formatBRL, formatData } from "./format";
 import { chavePix, titularPix } from "./pix";
 import { descontoTotalPedido } from "./descontos";
 import { valorPago, valorRestante } from "./pagamentos";
+import { descricaoPacote } from "./descricaoPacote";
 
 const LARGURA = 72;
 const MARGEM = 2;
@@ -62,6 +63,8 @@ function desenhar(doc: jsPDF, pedido: Pedido, config: Config, logo: Uint8Array |
 
   for (const item of pedido.itens) {
     paragrafo(item.produto_nome, 8, "bold");
+    const apresentacao = descricaoPacote(item.pack_quantidade);
+    if (apresentacao) paragrafo(apresentacao, 6.5);
     if ((item.desconto_unitario ?? 0) > 0) paragrafo("Desconto aplicado", 6.5);
     doc.setFont("helvetica", "normal").setFontSize(7.5).setTextColor(15, 23, 42);
     doc.text(`${item.quantidade} ${item.modo === "pacote" ? "pct" : "un"} × ${formatBRL(item.preco_unitario)}`, MARGEM, y);

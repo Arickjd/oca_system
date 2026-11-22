@@ -67,6 +67,8 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 Cada produto possui somente **preço de atacado por pacote**. Depois de adicioná-lo,
 o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
+Nos documentos (PDF A4 e cupom de 80 mm), quando o item tem mais de uma unidade
+por pacote, o nome do produto mostra `N itens/pacote` na linha de baixo.
 
 A antiga categoria **Diversos** foi incorporada por **Outros**, e todo produto
 cadastrado sem categoria é gravado em **Outros** — não existe mais "Sem categoria".
