@@ -6,7 +6,7 @@ if (!["localhost", "127.0.0.1"].includes(new URL(base).hostname)) throw new Erro
 const senhaJardel = process.env.OCA_TEST_SENHA_JARDEL;
 if (!senhaJardel) throw new Error("Defina OCA_TEST_SENHA_JARDEL para testar o login de Jardel.");
 const request = (url, options = {}) => fetch(base + url, { redirect: "manual", ...options });
-const paginas = ["/home", "/categorias", "/produtos", "/carrinho", "/checkout", "/gerenciar-produtos", "/orcamentos", "/vendas", "/relatorios", "/orcamento/inexistente", "/orcamento/inexistente/editar", "/orcamento/inexistente/cupom"];
+const paginas = ["/home", "/categorias", "/produtos", "/carrinho", "/gerenciar-produtos", "/orcamentos", "/vendas", "/relatorios", "/orcamento/inexistente", "/orcamento/inexistente/editar", "/orcamento/inexistente/cupom"];
 for (const pagina of paginas) {
   const res = await request(pagina);
   assert.equal(res.status, 307, pagina);

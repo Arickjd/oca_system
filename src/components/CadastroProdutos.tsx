@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Produto, Categoria } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
+import { IMAGEM_PADRAO, IMAGENS_PRODUTO, imagemDoProduto, urlDoIcone } from "@/lib/imagensProduto";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import { useCart } from "@/lib/cart";
 
-const vazio = { id: "", nome: "", descricao: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "" };
+const vazio = { id: "", nome: "", descricao: "", preco_pack: "", custo_pack: "", pack_quantidade: "6", categoria_id: "", imagem_url: "" };
 const campo = "w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5";
 
 export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: { produtos: Produto[]; categorias: Categoria[] }) {
@@ -17,12 +18,14 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
   const [categoria, setCategoria] = useState<string | null>(null);
   const [form, setForm] = useState(vazio);
   const [aberto, setAberto] = useState(false);
+  const [mostrarIcones, setMostrarIcones] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [selecionadoDoCatalogo, setSelecionadoDoCatalogo] = useState(false);
   const [novasCategorias, setNovasCategorias] = useState<Categoria[]>([]);
   const categorias = [...categoriasRecebidas, ...novasCategorias.filter(n => !categoriasRecebidas.some(c => c.id === n.id))];
+  const iconeAtual = form.imagem_url ? IMAGENS_PRODUTO.find(icone => urlDoIcone(icone.arquivo) === form.imagem_url)?.rotulo ?? "Ícone escolhido" : "Padrão";
   // Cadastro novo já entra em "Outros" quando nenhuma categoria for escolhida.
   const categoriaOutros = categorias.find(c => c.nome.localeCompare("Outros", "pt-BR", { sensitivity: "base" }) === 0);
   const [editandoCategorias, setEditandoCategorias] = useState(false);
@@ -78,8 +81,8 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
     (categoria === null || p.categoria_id === categoria));
   function abrir(p?: Produto) {
     setSelecionadoDoCatalogo(false);
-    setForm(p ? { id: p.id, nome: p.nome, descricao: p.descricao ?? "", preco_pack: String(p.preco_pack), custo_pack: p.custo_pack ? String(p.custo_pack) : "", pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id } : { ...vazio, categoria_id: categoriaOutros?.id ?? "" });
-    setErro(""); setSucesso(""); setAberto(true);
+    setForm(p ? { id: p.id, nome: p.nome, descricao: p.descricao ?? "", preco_pack: String(p.preco_pack), custo_pack: p.custo_pack ? String(p.custo_pack) : "", pack_quantidade: String(p.pack_quantidade), categoria_id: p.categoria_id, imagem_url: p.imagem_url ?? "" } : { ...vazio, categoria_id: categoriaOutros?.id ?? "" });
+    setErro(""); setSucesso(""); setAberto(true); setMostrarIcones(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   async function excluir() {
@@ -99,7 +102,7 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
     try {
       const res = await fetch(form.id ? "/api/produtos/" + encodeURIComponent(form.id) : "/api/produtos", {
         method: form.id ? "PUT" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome, descricao: form.descricao, preco_pack: Number(form.preco_pack), custo_pack: form.custo_pack === "" ? null : Number(form.custo_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id }),
+        body: JSON.stringify({ nome: form.nome, descricao: form.descricao, preco_pack: Number(form.preco_pack), custo_pack: form.custo_pack === "" ? null : Number(form.custo_pack), pack_quantidade: Number(form.pack_quantidade), categoria_id: form.categoria_id, imagem_url: form.imagem_url }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Não foi possível salvar.");
@@ -172,9 +175,13 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
             <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
               {sugestoes.map(p => <li key={p.id}>
                 <button type="button" onClick={() => { abrir(p); setSelecionadoDoCatalogo(true); }}
-                  className="w-full rounded-lg p-3 text-left hover:bg-white focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-blue-600">
-                  <span className="block font-medium text-slate-900">{p.nome}</span>
-                  <span className="block text-xs text-slate-600">{formatBRL(p.preco_pack)} · {p.pack_quantidade} itens/pacote · {categorias.find(c => c.id === p.categoria_id)?.nome || "Sem categoria"}</span>
+                  className="flex w-full items-center gap-2 rounded-lg p-3 text-left hover:bg-white focus-visible:bg-white focus-visible:outline-2 focus-visible:outline-blue-600">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagemDoProduto(p)} alt="" className="h-9 w-9 shrink-0 rounded-lg bg-slate-100 object-cover" />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-slate-900">{p.nome}</span>
+                    <span className="block text-xs text-slate-600">{formatBRL(p.preco_pack)} · {p.pack_quantidade} itens/pacote · {categorias.find(c => c.id === p.categoria_id)?.nome || "Sem categoria"}</span>
+                  </span>
                 </button>
               </li>)}
             </ul>
@@ -183,6 +190,35 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
         </div>}
         {selecionadoDoCatalogo && <p role="status" className="rounded-lg bg-blue-50 p-3 text-blue-900">Produto existente selecionado. Os campos foram preenchidos; ao salvar, você atualizará este produto.</p>}
         <label>Descrição (opcional)<textarea rows={3} className={campo} placeholder="Detalhes do produto, material, tamanho…" value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} /></label>
+        <div className="flex flex-col gap-2">
+          <button type="button" onClick={() => setMostrarIcones(valor => !valor)} aria-expanded={mostrarIcones} aria-controls="icones-produto"
+            className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-left hover:border-slate-400">
+            <span className="flex min-w-0 items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.imagem_url || IMAGEM_PADRAO} alt="" className="h-9 w-9 shrink-0 rounded-lg bg-slate-100 object-cover" />
+              <span className="min-w-0">
+                <span className="block text-xs text-slate-500">Ícone do produto</span>
+                <span className="block truncate text-sm font-medium text-slate-800">{iconeAtual}</span>
+              </span>
+            </span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className={`h-5 w-5 shrink-0 text-slate-400 transition ${mostrarIcones ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+          {mostrarIcones && <div id="icones-produto" className="grid grid-cols-4 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-6">
+            {[{ arquivo: "padrao.png", rotulo: "Padrão" }, ...IMAGENS_PRODUTO].map(icone => {
+              const url = urlDoIcone(icone.arquivo);
+              const valor = icone.arquivo === "padrao.png" ? "" : url;
+              const ativo = form.imagem_url === valor;
+              return <button key={icone.arquivo} type="button" aria-pressed={ativo} title={icone.rotulo}
+                onClick={() => { setForm({ ...form, imagem_url: valor }); setMostrarIcones(false); }}
+                className={`flex flex-col items-center gap-1 rounded-xl border p-1.5 transition ${ativo ? "border-amber-500 bg-amber-50 ring-2 ring-amber-300" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="aspect-square w-full rounded-lg bg-slate-100 object-cover" />
+                <span className="line-clamp-2 w-full text-center text-[10px] leading-tight text-slate-600">{icone.rotulo}</span>
+              </button>;
+            })}
+          </div>}
+        </div>
         <label>Preço de atacado por pacote (R$)<input required type="number" min="0" step="0.01" inputMode="decimal" className={campo} value={form.preco_pack} onChange={e => setForm({ ...form, preco_pack: e.target.value })} /></label>
         <label className="text-blue-800">Compra por pacote (R$)<input type="number" min="0" step="0.01" inputMode="decimal" placeholder="---" className={campo} value={form.custo_pack} onChange={e => setForm({ ...form, custo_pack: e.target.value })} /></label>
         <RentabilidadeProduto venda={Number(form.preco_pack)} custo={Number(form.custo_pack)} />
@@ -210,13 +246,15 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
     {(busca || categoria !== null) && <button type="button" onClick={() => { setBusca(""); setCategoria(null); }} className="self-start text-sm underline">Limpar filtros</button>}
     <p role="status" className="text-sm text-slate-500">{lista.length} de {produtos.length} produto(s)</p>
     {!lista.length && <p>Nenhum produto encontrado.</p>}
-    {lista.map(p => <article key={p.id} className="flex justify-between items-center gap-3 rounded-xl border bg-white p-4">
-      <div className="min-w-0"><h2 className="font-semibold break-words">{p.nome}</h2>
+    {lista.map(p => <article key={p.id} className="flex items-start justify-between gap-3 rounded-xl border bg-white p-4">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={imagemDoProduto(p)} alt="" className="h-12 w-12 shrink-0 rounded-lg bg-slate-100 object-cover" />
+      <div className="min-w-0 flex-1"><h2 className="font-semibold break-words">{p.nome}</h2>
         <p className="text-sm text-slate-500">{categorias.find(c => c.id === p.categoria_id)?.nome || "Sem categoria"} · {p.pack_quantidade} itens/pacote</p>
         <p>Venda: {formatBRL(p.preco_pack)}</p>
         <RentabilidadeProduto venda={p.preco_pack} custo={p.custo_pack} />
       </div>
-      <button disabled={salvando} aria-label={"Editar " + p.nome} onClick={() => abrir(p)} className="rounded-lg border px-3 py-2">Editar</button>
+      <button disabled={salvando} aria-label={"Editar " + p.nome} onClick={() => abrir(p)} className="shrink-0 rounded-lg border px-3 py-2">Editar</button>
     </article>)}
   </section>;
 }

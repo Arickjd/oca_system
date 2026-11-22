@@ -6,7 +6,7 @@ import { separarHistorico } from "@/lib/historicoOrcamentos";
 import { avisosRecebimento } from "@/lib/avisos";
 import { exigirSessao } from "@/lib/auth-servidor";
 
-// O rodapé lê o banco: carrinho e checkout também precisam renderizar por requisição.
+// O rodapé lê o banco: carrinho também precisa renderizar por requisição.
 // Não consultar tabelas durante o build, antes da migração inicial.
 export const dynamic = "force-dynamic";
 

@@ -176,7 +176,7 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "pack_quantidade"> & Partial<Pick<Produto, "preco_pack" | "categoria_id" | "custo_pack" | "descricao">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "pack_quantidade"> & Partial<Pick<Produto, "preco_pack" | "categoria_id" | "custo_pack" | "descricao" | "imagem_url">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
@@ -241,14 +241,14 @@ export async function getAuditoria(limite = 100): Promise<EventoAuditoria[]> {
 }
 
 
-export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao">>) {
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao" | "imagem_url">>) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
-    ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
+    ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: input.imagem_url ?? "", ativo: true, created_at: new Date().toISOString(),
   });
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
-    const produto: Produto = { ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString() };
+    const produto: Produto = { ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: input.imagem_url ?? "", ativo: true, created_at: new Date().toISOString() };
     produtos.push(produto);
     await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);

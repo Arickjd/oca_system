@@ -45,7 +45,7 @@ npm run start
 ```
 src/
   app/
-    (loja)/           # catálogo, edição do pedido e checkout
+    (loja)/           # catálogo, carrinho e edição do pedido
     orcamento/[id]/   # recibo A4 (imprimir / PDF / WhatsApp / compartilhar)
     api/              # leitura do catálogo/configuração e registro de pedidos
   components/         # interface do catálogo e do pedido
@@ -60,7 +60,7 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 |-----------|------|
 | RF01/RF02 – Catálogo com filtro por categoria e busca | `/` |
 | Carrinho: editar nome, preço, quantidade e tamanho do pacote | `/carrinho` |
-| RF07 – Registrar pedido | `/checkout` → `POST /api/pedidos` |
+| RF07 – Registrar pedido (finaliza e gera o orçamento na mesma tela) | `/carrinho` → `POST /api/pedidos` |
 | RF08/RF09 – Gerar e baixar orçamento (A4, imprimir/salvar PDF) | `/orcamento/[id]` |
 | RF15 – Compartilhar pedido (WhatsApp / Web Share) | `/orcamento/[id]` |
 
@@ -77,6 +77,13 @@ Em **Gerenciar produtos**, o botão **Editar categorias** abre a lista com a
 quantidade de produtos de cada categoria e permite criar ou excluir. Excluir uma
 categoria move os produtos dela (inclusive os excluídos) para **Outros**, que é o
 destino padrão e não pode ser excluída.
+
+Cada produto pode ter um **ícone predefinido**, escolhido no cadastro/edição em
+um campo “Ícone do produto” que abre (e fecha ao escolher) uma grade com a opção
+**Padrão** e 21 imagens (`public/icons/produtos`: caixa, lata, garrafa, sacola,
+pacote de sacolas, marmita unidade/atacado etc.). Produto sem ícone — inclusive todos os cadastrados antes deste
+recurso — exibe `padrao.png` no catálogo, na busca e no carrinho. A API só aceita
+vazio (padrão) ou um dos ícones da lista.
 
 O preço negociado no carrinho vale somente para aquela venda: não altera o preço
 global do produto. Nome e itens por pacote continuam atualizando o catálogo.
