@@ -67,6 +67,10 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 Cada produto possui somente **preço de atacado por pacote**. Depois de adicioná-lo,
 o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade de
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
+A busca de produtos (catálogo, gerenciar produtos e edição de orçamento) ignora
+acentos, caixa e pontuação, exige todos os termos em qualquer ordem e também olha
+o código do produto: `cajuina` encontra “CAJUÍNA” e `coca 1.5` encontra
+“COCA COLA 1,5L”.
 Nos documentos (PDF A4 e cupom de 80 mm), quando o item tem mais de uma unidade
 por pacote, o nome do produto mostra `N itens/pacote` na linha de baixo.
 

@@ -25,7 +25,8 @@
     "test:exportacao": "node scripts/test-exportacao.cjs",
     "test:cupom": "node scripts/test-cupom.cjs",
     "test:pagamentos": "node scripts/test-pagamentos.cjs",
-    "test:auditoria": "node scripts/test-auditoria.cjs"
+    "test:auditoria": "node scripts/test-auditoria.cjs",
+    "test:busca": "node scripts/test-busca.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
