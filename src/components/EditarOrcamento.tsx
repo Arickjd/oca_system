@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Pedido, Produto } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
+import { produtoCombina } from "@/lib/busca";
 
 type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string; preco_original: number; custo_unitario: number | null };
 const campo = "mt-1 w-full min-w-0 rounded-xl border border-slate-300 bg-white p-2.5 text-sm";
@@ -20,8 +21,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
-  const normalizar = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const encontrados = busca.trim().length >= 2 ? produtos.filter(p => normalizar(p.nome).includes(normalizar(busca.trim()))).slice(0, 12) : [];
+  const encontrados = busca.trim().length >= 2 ? produtos.filter(p => produtoCombina(p, busca.trim())).slice(0, 12) : [];
   const total = itens.reduce((s, it) => s + Math.round(Number(it.preco_unitario) * Number(it.quantidade) * 100), 0) / 100;
   function alterar(chave: string, patch: Partial<Linha>) { setItens(lista => lista.map(it => it.chave === chave ? { ...it, ...patch } : it)); }
   function adicionar(p: Produto) {

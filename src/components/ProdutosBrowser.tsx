@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Categoria, Produto } from "@/lib/types";
+import { produtoCombina } from "@/lib/busca";
 import { ProdutoCard } from "./ProdutoCard";
 
 export function ProdutosBrowser({
@@ -43,10 +44,9 @@ export function ProdutosBrowser({
   }, [categorias]);
 
   const filtrados = useMemo(() => {
-    const b = busca.trim().toLowerCase();
     return produtos.filter((p) => {
       if (catId && p.categoria_id !== catId) return false;
-      if (b && !p.nome.toLowerCase().includes(b)) return false;
+      if (busca.trim() && !produtoCombina(p, busca)) return false;
       return true;
     });
   }, [produtos, busca, catId]);

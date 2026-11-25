@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Produto, Categoria } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { IMAGEM_PADRAO, IMAGENS_PRODUTO, imagemDoProduto, urlDoIcone } from "@/lib/imagensProduto";
+import { normalizarBusca, produtoCombina } from "@/lib/busca";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 import { useCart } from "@/lib/cart";
 
@@ -68,16 +69,18 @@ export function CadastroProdutos({ produtos, categorias: categoriasRecebidas }: 
     } catch (error) { setErroCategoria(error instanceof Error ? error.message : "Falha ao excluir a categoria."); }
     finally { setExcluindo(null); }
   }
-  const normalizar = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const nomeBusca = normalizar(form.nome.trim()).replace(/\s+/g, " ");
+  const nomeBusca = normalizarBusca(form.nome);
   const sugestoes = !form.id && nomeBusca.length >= 2
-    ? produtos.filter(p => !p.excluido_em && nomeBusca.split(" ").every(termo => normalizar(p.nome).includes(termo)))
+    ? produtos.filter(p => !p.excluido_em && produtoCombina(p, form.nome))
       .sort((a, b) => {
-        const prioridade = (p: Produto) => normalizar(p.nome) === nomeBusca ? 0 : normalizar(p.nome).startsWith(nomeBusca) ? 1 : 2;
+        const prioridade = (p: Produto) => {
+          const alvo = normalizarBusca(p.nome);
+          return alvo === nomeBusca ? 0 : alvo.startsWith(nomeBusca) ? 1 : 2;
+        };
         return prioridade(a) - prioridade(b) || a.nome.localeCompare(b.nome, "pt-BR");
       }).slice(0, 6)
     : [];
-  const lista = produtos.filter(p => normalizar(p.nome).includes(normalizar(busca.trim())) &&
+  const lista = produtos.filter(p => produtoCombina(p, busca) &&
     (categoria === null || p.categoria_id === categoria));
   function abrir(p?: Produto) {
     setSelecionadoDoCatalogo(false);
