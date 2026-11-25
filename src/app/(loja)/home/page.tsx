@@ -74,6 +74,9 @@ export default async function HomePage() {
               <span aria-hidden="true" className="text-slate-500 transition-transform group-hover:translate-x-0.5">→</span>
             </Link>
           ))}
+          {/* Espaços reservados para as próximas features de gestão. */}
+          <div aria-hidden="true" className="min-h-[4.375rem] rounded-2xl border border-dashed border-slate-200 bg-white/60 sm:min-h-[4.625rem]" />
+          <div aria-hidden="true" className="min-h-[4.375rem] rounded-2xl border border-dashed border-slate-200 bg-white/60 sm:min-h-[4.625rem]" />
         </div>
       </section>
     </div>
