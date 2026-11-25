@@ -71,7 +71,7 @@ export async function excluirProduto(id: string): Promise<boolean> {
   return !!produto;
 }
 
-export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status_pagamento" | "forma_pagamento" | "pago_em" | "status">, revisao?: number): Promise<Pedido | undefined> {
+export async function finalizarPagamento(id: string, patch: object, revisao?: number): Promise<Pedido | undefined> {
   const rows = await sql().query(`
     UPDATE oca_registros SET dados = dados || $2::jsonb || jsonb_build_object('revisao', COALESCE((dados->>'revisao')::integer, 0) + 1)
     WHERE colecao = 'pedidos' AND id = $1
@@ -84,6 +84,17 @@ export async function finalizarPagamento(id: string, patch: Pick<Pedido, "status
 }
 
 type ProdutoExcluido = { id: string; excluido_em: string };
+
+// Move todos os produtos de uma categoria para outra (usado ao excluir a categoria).
+export async function moverProdutosParaCategoria(de: string, para: string) {
+  await sql().query(
+    "UPDATE oca_registros SET dados = jsonb_set(dados, '{categoria_id}', to_jsonb($2::text)) WHERE colecao = 'produtos' AND dados->>'categoria_id' = $1",
+    [de, para]);
+}
+
+export async function remover(colecao: string, id: string) {
+  await sql().query("DELETE FROM oca_registros WHERE colecao = $1 AND id = $2", [colecao, id]);
+}
 
 export async function editarPedido(id: string, patch: object, revisao: number, permitirVenda = false): Promise<Pedido | undefined> {
   const rows = await sql().query(`

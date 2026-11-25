@@ -1,4 +1,5 @@
-import { getCategorias } from "./db";
+import { categoriaOutros, getCategorias } from "./db";
+import { normalizarImagem } from "./imagensProduto";
 
 export async function validarProduto(body: unknown) {
   if (!body || typeof body !== "object") throw new Error("Dados inválidos.");
@@ -7,9 +8,10 @@ export async function validarProduto(body: unknown) {
       typeof b.preco_pack !== "number" || !Number.isFinite(b.preco_pack) || b.preco_pack < 0 ||
       typeof b.pack_quantidade !== "number" || !Number.isSafeInteger(b.pack_quantidade) || b.pack_quantidade < 1)
     throw new Error("Informe nome, preço válido e quantidade inteira por pacote.");
-  const patch: { nome: string; descricao?: string; preco_pack: number; pack_quantidade: number; categoria_id?: string; custo_pack?: number | null } = {
+  const patch: { nome: string; descricao?: string; preco_pack: number; pack_quantidade: number; categoria_id?: string; custo_pack?: number | null; imagem_url?: string } = {
     nome: b.nome.trim(), preco_pack: Math.round(b.preco_pack * 100) / 100, pack_quantidade: b.pack_quantidade,
   };
+  if (b.imagem_url !== undefined) patch.imagem_url = normalizarImagem(b.imagem_url);
   if (b.descricao !== undefined) {
     if (typeof b.descricao !== "string") throw new Error("A descrição deve ser um texto.");
     patch.descricao = b.descricao.trim();
@@ -20,9 +22,14 @@ export async function validarProduto(body: unknown) {
     patch.custo_pack = b.custo_pack === null ? null : Math.round((b.custo_pack as number) * 100) / 100 || null;
   }
   if (b.categoria_id !== undefined) {
-    if (typeof b.categoria_id !== "string" || (b.categoria_id && !(await getCategorias()).some(c => c.id === b.categoria_id)))
-      throw new Error("Categoria inválida.");
-    patch.categoria_id = b.categoria_id;
+    if (typeof b.categoria_id !== "string") throw new Error("Categoria inválida.");
+    if (!b.categoria_id) {
+      // Sem categoria escolhida, o produto entra em "Outros" (criada se ainda não existir).
+      patch.categoria_id = (await categoriaOutros()).id;
+    } else {
+      if (!(await getCategorias()).some(c => c.id === b.categoria_id)) throw new Error("Categoria inválida.");
+      patch.categoria_id = b.categoria_id;
+    }
   }
   return patch;
 }

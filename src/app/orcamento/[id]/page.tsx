@@ -8,6 +8,8 @@ import {
 } from "@/lib/format";
 import { ReciboAcoes } from "@/components/ReciboAcoes";
 import { PagamentoOrcamento } from "@/components/PagamentoOrcamento";
+import { valorPago, valorRestante } from "@/lib/pagamentos";
+import { dataCurta } from "@/lib/periodoOrcamentos";
 import { exigirSessao } from "@/lib/auth-servidor";
 
 export const dynamic = "force-dynamic";
@@ -29,16 +31,16 @@ export default async function OrcamentoPage({ params }: Params) {
           <Link href={pedido.status_pagamento === "finalizado" ? "/vendas" : "/orcamentos"} className="inline-block mb-3 text-sm underline">{pedido.status_pagamento === "finalizado" ? "Voltar às vendas" : "Voltar aos orçamentos"}</Link>
           <ReciboAcoes
             key={pedido.revisao ?? 0}
-            pedidoId={pedido.id}
-            numero={pedido.numero}
-            shareTitle={`${config.distribuidora_nome} — Orçamento #${pedido.numero}`}
+            pedido={pedido}
+            config={config}
           />
         </div>
       </div>
 
       <div className="p-3 sm:p-6">
         <div id="pagamento" className="no-print mx-auto mb-4 max-w-[210mm] scroll-mt-52">
-          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} />
+          <PagamentoOrcamento key={pedido.revisao ?? 0} id={pedido.id} finalizado={pedido.status_pagamento === "finalizado"} status={pedido.status_pagamento} forma={pedido.forma_pagamento} revisao={pedido.revisao ?? 0} valor={pedido.valor_total} pago={valorPago(pedido)} restante={valorRestante(pedido)} previsao={pedido.previsao_recebimento} pagamentos={pedido.pagamentos} />
+          {pedido.status_pagamento === "finalizado" && <p className="mt-2 text-sm text-slate-600">Pagamento confirmado por: {pedido.finalizado_por?.nome ?? "Não informado"}</p>}
         </div>
         {/* Recibo A4 */}
         <article className="recibo bg-white text-slate-900 mx-auto max-w-[210mm] w-full rounded-lg shadow-lg p-4 sm:p-10">
@@ -87,7 +89,7 @@ export default async function OrcamentoPage({ params }: Params) {
           )}
 
           {/* Itens */}
-          {pedido.criado_por && <p className="pt-4 text-sm text-slate-500">Responsável: <span className="font-medium text-slate-700">{pedido.criado_por.nome}</span></p>}
+          {pedido.criado_por && <p className="pt-4 text-sm text-slate-500">Orçamento criado por: <span className="font-medium text-slate-700">{pedido.criado_por.nome}</span></p>}
           <section className="py-5">
             <table className="w-full table-fixed text-xs sm:text-sm border-collapse break-words">
               <thead>
@@ -137,6 +139,11 @@ export default async function OrcamentoPage({ params }: Params) {
                 {formatBRL(pedido.valor_total)}
               </span>
               </div>
+              {pedido.status_pagamento === "parcial" && <div className="mt-1 border-t border-slate-200 pt-1 text-sm">
+                <div className="flex items-center justify-between"><span className="text-slate-600">Já pago</span><span className="tabular-nums">{formatBRL(valorPago(pedido))}</span></div>
+                <div className="flex items-center justify-between font-semibold text-amber-800"><span>Falta receber</span><span className="tabular-nums">{formatBRL(valorRestante(pedido))}</span></div>
+                {pedido.previsao_recebimento && <p className="mt-1 text-xs text-slate-500">Lembrete: receber até {dataCurta(pedido.previsao_recebimento)}</p>}
+              </div>}
             </div>
           </section>
 

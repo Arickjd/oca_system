@@ -1,9 +1,14 @@
 export const schema = [
   `CREATE TABLE IF NOT EXISTS oca_registros (
-    colecao text NOT NULL CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config')),
+    colecao text NOT NULL CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria')),
     id text NOT NULL, dados jsonb NOT NULL CHECK (jsonb_typeof(dados) = 'object'),
     PRIMARY KEY (colecao, id)
   )`,
+  // Bases criadas antes do log de auditoria têm um CHECK que só aceita as quatro
+  // coleções antigas; recriá-lo libera 'auditoria' sem perder dados.
+  `ALTER TABLE oca_registros DROP CONSTRAINT IF EXISTS oca_registros_colecao_check`,
+  `ALTER TABLE oca_registros ADD CONSTRAINT oca_registros_colecao_check
+    CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria'))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS oca_numero_pedido
     ON oca_registros (((dados->>'numero')::bigint)) WHERE colecao = 'pedidos'`,
   `CREATE TABLE IF NOT EXISTS oca_contadores (

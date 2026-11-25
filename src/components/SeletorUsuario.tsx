@@ -1,6 +1,16 @@
 "use client";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { USUARIOS, buscarUsuario } from "@/lib/usuarios";
+import { USUARIOS, buscarUsuario, type Usuario } from "@/lib/usuarios";
+
+// Avatar do usuário: inicia do nome ou um ícone de computador para a conta "Computador".
+function AvatarUsuario({ usuario, ativo, tom = "lista" }: { usuario: Usuario; ativo: boolean; tom?: "lista" | "selecionado" }) {
+  const classe = `grid h-8 w-8 shrink-0 place-items-center rounded-lg font-semibold ${ativo ? "bg-slate-900 text-white" : tom === "selecionado" ? "bg-slate-100 text-slate-500" : "bg-slate-100 text-slate-600"}`;
+  return <span aria-hidden="true" className={classe}>
+    {usuario.id === "computador"
+      ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>
+      : usuario.nome[0]}
+  </span>;
+}
 
 export function SeletorUsuario({ valor, onChange, desabilitado, invalido }: {
   valor: string; onChange: (id: string) => void; desabilitado: boolean; invalido: boolean;
@@ -56,16 +66,16 @@ export function SeletorUsuario({ valor, onChange, desabilitado, invalido }: {
     <input type="hidden" name="username" value={valor} />
     <button ref={botao} id={`${id}-botao`} type="button" role="combobox" aria-labelledby={`${id}-label`} aria-haspopup="listbox" aria-expanded={expandido} aria-controls={`${id}-opcoes`} aria-activedescendant={expandido ? `${id}-opcao-${ativo}` : undefined} aria-invalid={invalido || undefined} aria-required="true" disabled={desabilitado} onKeyDown={teclado} onClick={() => expandido ? setAberto(false) : abrir()}
       className={`mt-1 flex min-h-14 w-full items-center gap-3 rounded-xl border bg-white p-3 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:opacity-60 ${invalido ? "border-red-400" : expandido ? "border-amber-400" : "border-slate-300 hover:border-slate-400 focus-visible:border-amber-400"}`}>
-      <span aria-hidden="true" className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg font-semibold ${selecionado ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-500"}`}>
-        {selecionado ? selecionado.nome[0] : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg>}
-      </span>
+      {selecionado
+        ? <AvatarUsuario usuario={selecionado} ativo tom="selecionado" />
+        : <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-5 w-5"><circle cx="12" cy="8" r="3.5" /><path d="M5 21v-2a7 7 0 0 1 14 0v2" /></svg></span>}
       <span className={`min-w-0 flex-1 truncate ${selecionado ? "font-semibold text-slate-900" : "text-slate-500"}`}>{selecionado?.nome ?? "Selecione seu nome"}</span>
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${expandido ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" /></svg>
     </button>
     {expandido && <ul id={`${id}-opcoes`} role="listbox" aria-labelledby={`${id}-label`} className="absolute inset-x-0 top-full z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
       {USUARIOS.map((usuario, index) => <li key={usuario.id} id={`${id}-opcao-${index}`} role="option" aria-selected={valor === usuario.id} onMouseEnter={() => setAtivo(index)} onMouseDown={event => event.preventDefault()} onClick={() => selecionar(index)}
         className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm ${valor === usuario.id ? "bg-amber-50 font-semibold text-slate-900" : ativo === index ? "bg-slate-100 text-slate-900" : "text-slate-700"} ${ativo === index ? "outline outline-1 -outline-offset-1 outline-amber-300" : ""}`}>
-        <span aria-hidden="true" className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg font-semibold ${valor === usuario.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>{usuario.nome[0]}</span>
+        <AvatarUsuario usuario={usuario} ativo={valor === usuario.id} />
         <span className="flex-1">{usuario.nome}</span>
         {valor === usuario.id && <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-amber-600"><path d="m5 12 4 4L19 6" /></svg>}
       </li>)}

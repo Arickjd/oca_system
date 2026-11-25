@@ -2,23 +2,22 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
-const Module = require("node:module");
-const ts = require("typescript");
+const { criarLoader } = require("./load-ts.cjs");
 
 async function main() {
   const root = process.cwd();
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), "oca-test-"));
   try {
-    const source = await fs.readFile(path.join(root, "src/lib/db.ts"), "utf8");
     process.chdir(temp);
     await fs.mkdir("data");
     await fs.writeFile("data/produtos.json", "[]");
-    const mod = new Module(path.join(root, "src/lib/db.cjs"), module);
-    mod.filename = path.join(root, "src/lib/db.cjs");
-    mod.paths = module.paths;
-    mod.require = name => name === "./postgres" ? { usarPostgres: () => false } : require(name);
-    mod._compile(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, mod.filename);
-    const db = mod.exports;
+    const carregar = criarLoader(root, { "./postgres": { usarPostgres: () => false } });
+    const db = carregar("src/lib/db.ts");
+    const exemplo = '[{"id":"exemplo","numero":1}]';
+    await fs.writeFile("data/pedidos.json", exemplo);
+    assert.equal((await db.getPedidos())[0].id, "exemplo");
+    await fs.writeFile("data/pedidos.local.json", "[]");
+    assert.deepEqual(await db.getPedidos(), []);
     await require("./test-categorias.cjs")(db);
     const produto = await db.criarProduto({ nome: "Teste", descricao: "Descrição inicial", preco_pack: 12.5, pack_quantidade: 6, categoria_id: "" });
     await db.atualizarProduto(produto.id, { nome: "Atualizado", preco_pack: 15, pack_quantidade: 12 });
@@ -72,9 +71,10 @@ async function main() {
     assert.ok(snapshotBanco.registros.some(r => r.colecao === "pedidos" && r.dados.excluido_em));
     assert.ok(snapshotBanco.registros.some(r => r.colecao === "produtos" && r.dados.excluido_em));
     assert.equal(snapshotBanco.contadores[0].valor, String(Math.max(...snapshotBanco.registros.filter(r => r.colecao === "pedidos").map(r => r.dados.numero))));
-    await fs.writeFile("data/pedidos.json", "{invalid");
+    await fs.writeFile("data/pedidos.local.json", "{invalid");
     await assert.rejects(() => db.createPedido(input));
-    assert.equal(await fs.readFile("data/pedidos.json", "utf8"), "{invalid");
+    assert.equal(await fs.readFile("data/pedidos.local.json", "utf8"), "{invalid");
+    assert.equal(await fs.readFile("data/pedidos.json", "utf8"), exemplo);
     console.log("OK: cadastro, edição, concorrência, exclusão sem reutilizar números e proteção contra JSON corrompido.");
   } finally {
     process.chdir(root);

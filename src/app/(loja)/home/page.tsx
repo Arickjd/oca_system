@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { exigirSessao } from "@/lib/auth-servidor";
-import { getPedidos } from "@/lib/db";
+import { getAuditoria, getPedidos } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
 import { filtrarPeriodo, FUSO, resolverPeriodo, resumoPeriodo } from "@/lib/periodoOrcamentos";
+import { AuditoriaLog } from "@/components/AuditoriaLog";
 
 const atalhos = [
   { href: "/gerenciar-produtos", titulo: "Gerenciar produtos", descricao: "Consulte e edite o catálogo", icone: "M4 7h16M4 12h16M4 17h10M8 5v4m8 1v4m-8 1v4" },
@@ -11,6 +12,8 @@ const atalhos = [
 
 export default async function HomePage() {
   const { usuario } = await exigirSessao();
+  const admin = usuario.papel === "admin";
+  const eventos = admin ? await getAuditoria(50) : [];
   const agora = new Date();
   const data = new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" }).format(agora);
   const hoje = resumoPeriodo(filtrarPeriodo(await getPedidos(), resolverPeriodo({}, agora)));
@@ -79,6 +82,12 @@ export default async function HomePage() {
           <div aria-hidden="true" className="min-h-[4.375rem] rounded-2xl border border-dashed border-slate-200 bg-white/60 sm:min-h-[4.625rem]" />
         </div>
       </section>
+
+      {admin && (
+        <section aria-label="Registro de atividades">
+          <AuditoriaLog eventos={eventos} />
+        </section>
+      )}
     </div>
   );
 }

@@ -7,14 +7,20 @@ import type {
   Categoria,
   FormaPagamento,
   ItemPedido,
+  PagamentoParcial,
   Pedido,
   Produto,
 } from "./types";
+import { valorPago, valorRestante } from "./pagamentos";
+import { dataValida, diaLocal } from "./periodoOrcamentos";
+import { formatBRL } from "./format";
+import type { EventoAuditoria } from "./auditoria";
 
 // PostgreSQL quando DATABASE_URL estiver configurada; JSON apenas para uso local.
 // Na Vercel, uma configuração ausente interrompe a operação em vez de perder dados.
 
 const DATA_DIR = path.join(process.cwd(), "data");
+const PEDIDOS_LOCAL = path.join(DATA_DIR, "pedidos.local.json");
 
 async function ensureDir() {
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -26,6 +32,13 @@ export async function readData<T>(file: string, fallback: T): Promise<T> {
     return await postgres.listar<T extends (infer U)[] ? U : never>(file.replace(".json", "")) as T;
   }
   try {
+    if (file === "pedidos.json") {
+      try {
+        return JSON.parse(await fs.readFile(PEDIDOS_LOCAL, "utf8")) as T;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
     return JSON.parse(raw) as T;
   } catch (error) {
@@ -41,7 +54,7 @@ export function writeData(file: string, data: unknown): Promise<void> {
   if (postgres.usarPostgres()) throw new Error("Gravação de arquivos desabilitada com PostgreSQL.");
   const run = writeChain.then(async () => {
     await ensureDir();
-    const dest = path.join(DATA_DIR, file);
+    const dest = file === "pedidos.json" ? PEDIDOS_LOCAL : path.join(DATA_DIR, file);
     const tmp = `${dest}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
     await fs.rename(tmp, dest);
@@ -95,6 +108,61 @@ export async function criarCategoria(nome: string): Promise<Categoria> {
 
 /* ------------------------------ Produtos ------------------------------ */
 
+// Toda venda sem categoria escolhida entra em "Outros"; a categoria é criada se faltar.
+export async function categoriaOutros(): Promise<Categoria> {
+  const categorias = await getCategorias();
+  const existente = categorias.find(c => c.nome.localeCompare("Outros", "pt-BR", { sensitivity: "base" }) === 0);
+  if (existente) return existente;
+  return criarCategoria("Outros");
+}
+
+export class CategoriaPadrao extends Error {}
+
+function ehCategoriaPadrao(categoria: { nome: string }) {
+  return categoria.nome.localeCompare("Outros", "pt-BR", { sensitivity: "base" }) === 0;
+}
+
+// Exclui a categoria e move os produtos dela (inclusive excluídos) para "Outros".
+export async function excluirCategoria(id: string): Promise<boolean> {
+  const categorias = await getCategorias();
+  const alvo = categorias.find(c => c.id === id);
+  if (!alvo) return false;
+  if (ehCategoriaPadrao(alvo)) throw new CategoriaPadrao("A categoria Outros é o destino padrão e não pode ser excluída.");
+
+  if (postgres.usarPostgres()) {
+    let outros = categorias.find(ehCategoriaPadrao);
+    if (!outros) outros = await postgres.inserir<Categoria>("categorias", {
+      id: randomUUID(), nome: "Outros", ativo: true, created_at: new Date().toISOString(),
+    });
+    await postgres.moverProdutosParaCategoria(id, outros.id);
+    await postgres.remover("categorias", id);
+    return true;
+  }
+
+  const run = writeChain.then(async () => {
+    const arquivoCategorias = path.join(DATA_DIR, "categorias.json");
+    const arquivoProdutos = path.join(DATA_DIR, "produtos.json");
+    const todas: Categoria[] = JSON.parse(await fs.readFile(arquivoCategorias, "utf8"));
+    const produtos: Produto[] = JSON.parse(await fs.readFile(arquivoProdutos, "utf8"));
+    let outros = todas.find(ehCategoriaPadrao);
+    if (!outros) {
+      outros = { id: randomUUID(), nome: "Outros", ativo: true, created_at: new Date().toISOString() };
+      todas.push(outros);
+    }
+    let moveu = false;
+    for (const produto of produtos) if (produto.categoria_id === id) { produto.categoria_id = outros.id; moveu = true; }
+    if (moveu) {
+      await fs.writeFile(`${arquivoProdutos}.tmp`, JSON.stringify(produtos, null, 2), "utf8");
+      await fs.rename(`${arquivoProdutos}.tmp`, arquivoProdutos);
+    }
+    await fs.writeFile(`${arquivoCategorias}.tmp`, JSON.stringify(todas.filter(c => c.id !== id), null, 2), "utf8");
+    await fs.rename(`${arquivoCategorias}.tmp`, arquivoCategorias);
+    return true;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 export async function getProdutos(): Promise<Produto[]> {
   return (await readData<Produto[]>("produtos.json", [])).filter(p => !p.excluido_em);
 }
@@ -108,7 +176,7 @@ export async function getProduto(id: string): Promise<Produto | undefined> {
   return prods.find((p) => p.id === id);
 }
 
-export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "pack_quantidade"> & Partial<Pick<Produto, "preco_pack" | "categoria_id" | "custo_pack" | "descricao">>) {
+export async function atualizarProduto(id: string, patch: Pick<Produto, "nome" | "pack_quantidade"> & Partial<Pick<Produto, "preco_pack" | "categoria_id" | "custo_pack" | "descricao" | "imagem_url">>) {
   if (postgres.usarPostgres()) return postgres.atualizar<Produto>("produtos", id, patch);
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
@@ -143,14 +211,44 @@ export async function excluirProduto(id: string): Promise<boolean> {
 
 /* ------------------------------- Pedidos ------------------------------ */
 
-export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao">>) {
+// Log de auditoria: gravação tolerante a falhas, para nunca derrubar a ação auditada.
+export async function registrarAuditoria(evento: Omit<EventoAuditoria, "id" | "em">): Promise<void> {
+  const registro: EventoAuditoria = { ...evento, id: randomUUID(), em: new Date().toISOString() };
+  try {
+    if (postgres.usarPostgres()) {
+      await postgres.inserir("auditoria", registro);
+      return;
+    }
+    const run = writeChain.then(async () => {
+      await ensureDir();
+      const eventos = await readData<EventoAuditoria[]>("auditoria.json", []);
+      eventos.push(registro);
+      const dest = path.join(DATA_DIR, "auditoria.json");
+      await fs.writeFile(dest + ".tmp", JSON.stringify(eventos, null, 2), "utf8");
+      await fs.rename(dest + ".tmp", dest);
+    });
+    writeChain = run.catch(() => undefined);
+    await run;
+  } catch (error) {
+    console.error("Falha ao registrar auditoria:", error);
+  }
+}
+
+// Mais recentes primeiro; o limite evita carregar o histórico inteiro na home.
+export async function getAuditoria(limite = 100): Promise<EventoAuditoria[]> {
+  const eventos = await readData<EventoAuditoria[]>("auditoria.json", []);
+  return [...eventos].sort((a, b) => b.em.localeCompare(a.em)).slice(0, Math.max(1, limite));
+}
+
+
+export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao" | "imagem_url">>) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
-    ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString(),
+    ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: input.imagem_url ?? "", ativo: true, created_at: new Date().toISOString(),
   });
   const run = writeChain.then(async () => {
     const dest = path.join(DATA_DIR, "produtos.json");
     const produtos: Produto[] = JSON.parse(await fs.readFile(dest, "utf8"));
-    const produto: Produto = { ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: "", ativo: true, created_at: new Date().toISOString() };
+    const produto: Produto = { ...input, id: randomUUID(), descricao: input.descricao ?? "", unidade: "un", imagem_url: input.imagem_url ?? "", ativo: true, created_at: new Date().toISOString() };
     produtos.push(produto);
     await fs.writeFile(dest + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
@@ -183,7 +281,7 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
     if (!pedido || (!permitirVenda && pedido.status_pagamento === "finalizado")) return false;
     pedido.excluido_em = new Date().toISOString();
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return true;
@@ -192,16 +290,114 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
   return run;
 }
 
-export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number): Promise<Pedido | undefined> {
-  if (!["pix", "cartao", "dinheiro"].includes(forma)) throw new Error("Forma de pagamento inválida.");
-  const patch = { status_pagamento: "finalizado" as const, forma_pagamento: forma, pago_em: new Date().toISOString(), status: "concluido" as const };
-  if (postgres.usarPostgres()) return postgres.finalizarPagamento(id, patch, revisao);
+export class PagamentoInvalido extends Error {}
+
+const FORMAS_PAGAMENTO: FormaPagamento[] = ["pix", "cartao", "dinheiro"];
+
+export interface EntradaPagamentoParcial {
+  valor: number;
+  forma_pagamento: FormaPagamento;
+  previsao_recebimento?: string | null;
+}
+
+function normalizarPagamentoParcial(entrada: unknown, hoje = diaLocal(new Date())): EntradaPagamentoParcial {
+  const b = entrada as Partial<EntradaPagamentoParcial> | null;
+  if (!b || typeof b !== "object") throw new PagamentoInvalido("Informe o valor do recebimento parcial.");
+  if (!FORMAS_PAGAMENTO.includes(b.forma_pagamento as FormaPagamento)) throw new PagamentoInvalido("Selecione Pix, cartão ou dinheiro.");
+  const valor = typeof b.valor === "number" ? Math.round(b.valor * 100) / 100 : NaN;
+  if (!Number.isFinite(valor) || valor <= 0) throw new PagamentoInvalido("Informe um valor maior que zero.");
+  if (valor > 1_000_000) throw new PagamentoInvalido("Valor acima do permitido para um recebimento.");
+  const previsao = b.previsao_recebimento ?? null;
+  if (previsao !== null) {
+    if (typeof previsao !== "string" || !dataValida(previsao)) throw new PagamentoInvalido("Escolha uma data válida para o lembrete.");
+    if (previsao < hoje) throw new PagamentoInvalido("O lembrete não pode estar no passado.");
+  }
+  return { valor, forma_pagamento: b.forma_pagamento as FormaPagamento, previsao_recebimento: previsao };
+}
+
+// Registra um recebimento parcial: o orçamento continua aberto, agora na aba
+// "Recebimento parcial", até o restante ser recebido e a venda efetivada.
+export async function registrarPagamentoParcial(
+  id: string,
+  entrada: unknown,
+  registradoPor?: Pedido["criado_por"],
+  revisao?: number,
+): Promise<Pedido | undefined> {
+  const { valor, forma_pagamento, previsao_recebimento } = normalizarPagamentoParcial(entrada);
+  const agora = new Date().toISOString();
+  const pagamento: PagamentoParcial = { id: randomUUID(), valor, forma_pagamento, pago_em: agora, registrado_por: registradoPor };
+
+  const montarPatch = (pedido: Pedido) => {
+    const restante = valorRestante(pedido);
+    if (valor >= restante) throw new PagamentoInvalido(`O valor cobre o restante (${formatBRL(restante)}); use o pagamento total para finalizar a venda.`);
+    const pagamentos = [...(pedido.pagamentos ?? []), pagamento];
+    return {
+      pagamentos,
+      valor_pago: Math.round(pagamentos.reduce((soma, p) => soma + Math.round(p.valor * 100), 0)) / 100,
+      status_pagamento: "parcial" as const,
+      previsao_recebimento: previsao_recebimento ?? pedido.previsao_recebimento ?? null,
+      updated_at: agora,
+      revisao: (pedido.revisao ?? 0) + 1,
+    };
+  };
+
+  if (postgres.usarPostgres()) {
+    const pedido = await postgres.buscar<Pedido>("pedidos", id);
+    if (!pedido || pedido.excluido_em || pedido.status_pagamento === "finalizado" || (revisao !== undefined && (pedido.revisao ?? 0) !== revisao)) return undefined;
+    return postgres.editarPedido(id, montarPatch(pedido), revisao ?? pedido.revisao ?? 0);
+  }
+
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
     if (!pedido) return undefined;
-    Object.assign(pedido, patch, { revisao: (pedido.revisao ?? 0) + 1 });
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    Object.assign(pedido, montarPatch(pedido));
+    const dest = PEDIDOS_LOCAL;
+    await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return pedido;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export async function finalizarPagamento(id: string, forma: FormaPagamento, revisao?: number, finalizadoPor?: Pedido["finalizado_por"]): Promise<Pedido | undefined> {
+  if (!FORMAS_PAGAMENTO.includes(forma)) throw new Error("Forma de pagamento inválida.");
+  const agora = new Date().toISOString();
+
+  // Ao quitar um orçamento que já teve recebimentos parciais, o restante entra
+  // como o último pagamento do histórico, para o cupom e a auditoria fecharem.
+  const patchDe = (pedido: Pedido) => {
+    const restante = valorRestante(pedido);
+    const pagamentos = [...(pedido.pagamentos ?? [])];
+    if (pagamentos.length && restante > 0) {
+      pagamentos.push({ id: randomUUID(), valor: restante, forma_pagamento: forma, pago_em: agora, registrado_por: finalizadoPor });
+    }
+    return {
+      status_pagamento: "finalizado" as const,
+      forma_pagamento: forma,
+      finalizado_por: finalizadoPor,
+      pago_em: agora,
+      status: "concluido" as const,
+      valor_pago: pedido.valor_total,
+      previsao_recebimento: null,
+      updated_at: agora,
+      ...(pagamentos.length ? { pagamentos } : {}),
+    };
+  };
+
+  if (postgres.usarPostgres()) {
+    const atual = await postgres.buscar<Pedido>("pedidos", id);
+    if (!atual || atual.excluido_em || atual.status_pagamento === "finalizado") return undefined;
+    return postgres.finalizarPagamento(id, patchDe(atual), revisao);
+  }
+
+  const run = writeChain.then(async () => {
+    const pedidos = await readData<Pedido[]>("pedidos.json", []);
+    const pedido = pedidos.find(p => p.id === id && !p.excluido_em && p.status_pagamento !== "finalizado" && (revisao === undefined || (p.revisao ?? 0) === revisao));
+    if (!pedido) return undefined;
+    Object.assign(pedido, patchDe(pedido), { revisao: (pedido.revisao ?? 0) + 1 });
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return pedido;
@@ -285,13 +481,17 @@ export async function editarPedido(id: string, body: unknown, permitirVenda = fa
         custo_unitario: custo, subtotal: Math.round(preco * it.quantidade * 100) / 100 };
     });
     const total = itens.reduce((s, it) => s + Math.round(it.subtotal * 100), 0) / 100;
+    if (anterior.status_pagamento === "parcial") {
+      const pago = valorPago(anterior);
+      if (total < pago) throw new EdicaoInvalida(`O novo total (${formatBRL(total)}) ficaria abaixo do valor já recebido (${formatBRL(pago)}). Ajuste os recebimentos antes de editar.`);
+    }
     const patch = { cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
       itens, valor_total: total, lucro_bruto: itens.every(it => it.custo_unitario != null)
         ? (Math.round(total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100 : null,
       updated_at: new Date().toISOString(), revisao: input.revisao + 1 };
     if (remoto) return postgres.editarPedido(id, patch, input.revisao, permitirVenda);
     Object.assign(anterior, patch);
-    const dest = path.join(DATA_DIR, "pedidos.json");
+    const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return anterior;
@@ -358,7 +558,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   if (remoto) return postgres.inserirPedido(novo);
   pedidos.push(novo);
   await ensureDir();
-  const dest = path.join(DATA_DIR, "pedidos.json");
+  const dest = PEDIDOS_LOCAL;
   await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
   await fs.rename(dest + ".tmp", dest);
   return novo;

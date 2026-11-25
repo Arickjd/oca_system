@@ -29,7 +29,7 @@ async function main() {
     if (parts.length < 4) continue;
     const [codigo, nome, precoAtacado, categoriaNome] = parts.map((p) => p.trim());
 
-    const catNome = categoriaNome || "Sem categoria";
+    const catNome = !categoriaNome || /^diversos$/i.test(categoriaNome) ? "Outros" : categoriaNome;
     if (!categoriasMap.has(catNome)) {
       categoriasMap.set(catNome, {
         id: randomUUID(),

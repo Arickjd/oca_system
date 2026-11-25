@@ -47,8 +47,9 @@ for (const tipo of ["resumido", "detalhado"]) {
 console.log("OK: fuso, limites inclusivos, datas inválidas, semana, resumo e relatórios PDF.");
 const { gerarOrcamentoPdf } = load("src/lib/orcamentoPdf.ts");
 const logo = new Uint8Array(fs.readFileSync("public/logo.png"));
+const pix = { icone: fs.readFileSync("public/pix/icon_pix_green.jpg"), qrCode: fs.readFileSync("public/pix/qrcode_pix.png") };
 for (const [nome, itens] of [["descontos", pedidos[0].itens.slice(0, 4)], ["descontos-multipagina", pedidos[0].itens]]) {
   const pedido = { ...pedidos[0], itens, valor_total: itens.length * 20.2 };
-  fs.writeFileSync(`tmp/pdfs/orcamento-${nome}-teste.pdf`, gerarOrcamentoPdf(pedido, { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "Contato de teste" }, logo));
+  fs.writeFileSync(`tmp/pdfs/orcamento-${nome}-teste.pdf`, gerarOrcamentoPdf(pedido, { distribuidora_nome: "OCA Distribuidora", distribuidora_contato: "Contato de teste" }, logo, pix));
 }
 console.log("OK: PDFs de orçamento com e sem desconto, incluindo múltiplas páginas.");

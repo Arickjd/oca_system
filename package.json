@@ -16,13 +16,17 @@
     "start": "next start",
     "seed": "node scripts/seed.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate-database.mjs",
+    "db:mesclar-categorias": "node --env-file-if-exists=.env.local scripts/mesclar-diversos-em-outros.mjs",
     "test:postgres": "node scripts/test-postgres.cjs",
     "test:custos": "node scripts/test-custos.cjs",
     "test:orcamentos": "node scripts/test-orcamentos.cjs",
     "test:historico": "node scripts/test-historico.cjs",
     "test:auth": "node scripts/test-auth.cjs",
     "test:exportacao": "node scripts/test-exportacao.cjs",
-    "test:cupom": "node scripts/test-cupom.cjs"
+    "test:cupom": "node scripts/test-cupom.cjs",
+    "test:pagamentos": "node scripts/test-pagamentos.cjs",
+    "test:auditoria": "node scripts/test-auditoria.cjs",
+    "test:busca": "node scripts/test-busca.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",

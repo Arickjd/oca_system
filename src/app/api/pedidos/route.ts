@@ -1,6 +1,8 @@
 import { verificarAcessoApi, obterSessao } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
-import { getPedidos, createPedido, type NovoItem } from "@/lib/db";
+import { getPedidos, createPedido, registrarAuditoria, type NovoItem } from "@/lib/db";
+import { formatBRL } from "@/lib/format";
+import { alvoDoPedido } from "@/lib/auditoria";
 import { revalidarHistorico } from "@/lib/revalidarHistorico";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,20 @@ export async function POST(req: NextRequest) {
     observacao: body?.observacao,
     criado_por: { id: sessao.usuario.id, nome: sessao.usuario.nome },
     itens,
+  });
+
+  await registrarAuditoria({
+    usuario: { id: sessao.usuario.id, nome: sessao.usuario.nome },
+    acao: "pedido.criado",
+    titulo: "Orçamento criado",
+    alvo: alvoDoPedido(pedido),
+    resumo: `${formatBRL(pedido.valor_total)} · ${pedido.itens.length} produto(s)`,
+    detalhes: [
+      { rotulo: "Cliente", valor: pedido.cliente_nome || "não informado" },
+      { rotulo: "Produtos", valor: String(pedido.itens.length) },
+      { rotulo: "Total", valor: formatBRL(pedido.valor_total) },
+      { rotulo: "Criado por", valor: sessao.usuario.nome },
+    ],
   });
 
   revalidarHistorico();

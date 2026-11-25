@@ -31,6 +31,13 @@ a {
   scrollbar-width: none;
 }
 
+/* A busca já tem botão de limpar próprio; remove o "x" nativo do navegador. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ------------------------- Impressão do recibo ------------------------- */
 @media print {
   .no-print {
@@ -50,5 +57,24 @@ a {
   @page {
     size: A4 portrait;
     margin: 12mm;
+  }
+}
+
+/* Impressão do cupom a partir da própria página do orçamento: esconde a página
+   inteira e deixa visível apenas o cupom no portal (classe posta pelo botão). */
+@media print {
+  html.imprimindo-cupom body > *:not(#cupom-print-root) {
+    display: none !important;
+  }
+  html.imprimindo-cupom #cupom-print-root {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  html.imprimindo-cupom #cupom-print-root #cupom-conteudo {
+    width: 72mm !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
   }
 }
