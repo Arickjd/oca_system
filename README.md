@@ -61,6 +61,7 @@ scripts/seed.mjs      # importa produtos.txt -> JSON
 | RF01/RF02 – Catálogo com filtro por categoria e busca | `/` |
 | Carrinho: editar nome, preço, quantidade e tamanho do pacote | `/carrinho` |
 | RF07 – Registrar pedido (finaliza e gera o orçamento na mesma tela) | `/carrinho` → `POST /api/pedidos` |
+| Clientes recorrentes: cadastro, consulta e histórico | `/clientes`, `/clientes/novo`, `/clientes/[id]` |
 | RF08/RF09 – Gerar e baixar orçamento (A4, imprimir/salvar PDF) | `/orcamento/[id]` |
 | RF15 – Compartilhar pedido (WhatsApp / Web Share) | `/orcamento/[id]` |
 
@@ -69,8 +70,10 @@ o dono da distribuidora pode ajustar no carrinho o nome, o valor, a quantidade d
 pacotes e a quantidade de itens por pacote. Nenhum campo de cliente é obrigatório.
 A busca de produtos (catálogo, gerenciar produtos e edição de orçamento) ignora
 acentos, caixa e pontuação, exige todos os termos em qualquer ordem e também olha
-o código do produto: `cajuina` encontra “CAJUÍNA” e `coca 1.5` encontra
-“COCA COLA 1,5L”.
+o código do produto: `cajuina` encontra “CAJUÍNA”, `coca 1.5` encontra
+“COCA COLA 1,5L” e `15` também encontra “1,5L”. Palavras e números colados
+funcionam (`coca15`, `51lata`) e trechos no meio da palavra são aceitos quando
+têm pelo menos 5 letras (`artica` encontra “ANTÁRTICA”).
 Nos documentos (PDF A4 e cupom de 80 mm), quando o item tem mais de uma unidade
 por pacote, o nome do produto mostra `N itens/pacote` na linha de baixo.
 
@@ -100,6 +103,23 @@ Edições posteriores preservam o preço original registrado, mesmo que o catál
 mude. Orçamentos antigos sem essa referência usam seu preço registrado como base,
 sem inventar descontos retroativos. Os campos são salvos no JSONB existente e não
 exigem migração do banco.
+
+### Clientes
+
+**Clientes recorrentes** podem ser cadastrados em `/clientes` (nome, telefone,
+CPF/CNPJ e observação) e consultados por nome, telefone ou documento, ignorando
+acentos. A página de cada cliente mostra o histórico de orçamentos e vendas,
+com totais e links para os registros.
+
+No fechamento do carrinho, o campo **Nome** sugere os clientes cadastrados
+enquanto o usuário digita; selecionar um cliente preenche o telefone e vincula o
+orçamento pelo `cliente_id`. Digitar um nome livre continua permitido e gera um
+orçamento sem vínculo — nem toda venda é de um cliente recorrente. O vínculo pode
+ser removido ou trocado na edição do orçamento.
+
+A coleção `clientes` é nova no PostgreSQL. Em bases já publicadas, rode
+`npm run db:migrate` (ou aplique os `ALTER TABLE` do CHECK de `oca_registros`)
+antes de usar o cadastro; no modo JSON local nada precisa ser feito.
 
 ## Histórico, relatórios e edição de orçamentos
 

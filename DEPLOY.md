@@ -31,16 +31,17 @@ Se ocorrer o erro PostgreSQL 42P01 (tabela inexistente), execute a migração
 usando a conexão do mesmo banco/branch configurado no ambiente Vercel.
 Não basta criar o banco no Neon: npm run db:migrate cria as tabelas e importa os dados.
 
-Bancos criados antes do **log de auditoria** têm um CHECK em `oca_registros` que
-aceita apenas `produtos`, `categorias`, `pedidos` e `config`; a gravação da
-coleção `auditoria` falha nesse CHECK e a seção da home fica vazia. Rode
-`npm run db:migrate` (ou, no SQL editor do Neon, recrie a constraint) para liberar
-a coleção — a migração só altera a constraint e não apaga registros:
+Bancos criados antes do **log de auditoria**, do **controle de estoque** ou dos
+**clientes** têm um CHECK em `oca_registros` que aceita apenas as coleções
+antigas; gravações de `auditoria`, `estoque_movimentos` ou `clientes` falham
+nesse CHECK. Rode `npm run db:migrate` (ou, no SQL editor do Neon, recrie a
+constraint) para liberar as coleções — a migração só altera a constraint e não
+apaga registros:
 
 ```sql
 ALTER TABLE oca_registros DROP CONSTRAINT IF EXISTS oca_registros_colecao_check;
 ALTER TABLE oca_registros ADD CONSTRAINT oca_registros_colecao_check
-  CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria'));
+  CHECK (colecao IN ('produtos', 'categorias', 'pedidos', 'config', 'auditoria', 'estoque_movimentos', 'clientes'));
 ```
 
 O layout da loja é dinâmico, inclusive carrinho, para não acessar
