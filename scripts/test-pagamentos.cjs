@@ -7,7 +7,8 @@ const { criarLoader } = require("./load-ts.cjs");
 const dia = (offset) => {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + offset);
-  return d.toISOString().slice(0, 10);
+  // O app compara com o dia local de Brasília; o teste precisa usar o mesmo fuso.
+  return d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 };
 
 async function main() {
