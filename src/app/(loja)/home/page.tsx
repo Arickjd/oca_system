@@ -4,6 +4,7 @@ import { getAuditoria, getPedidos } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
 import { filtrarPeriodo, FUSO, resolverPeriodo, resumoPeriodo } from "@/lib/periodoOrcamentos";
 import { AuditoriaLog } from "@/components/AuditoriaLog";
+import { AvatarUsuario } from "@/components/AvatarUsuario";
 
 const atalhos = [
   { href: "/gerenciar-produtos", titulo: "Gerenciar produtos", descricao: "Consulte e edite o catálogo", icone: "M4 7h16M4 12h16M4 17h10M8 5v4m8 1v4m-8 1v4" },
@@ -24,25 +25,25 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 pb-5 pt-1 sm:space-y-8 sm:pt-4">
-      <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-slate-950 bg-[radial-gradient(ellipse_at_top_right,_#374151,_transparent_65%)] px-5 py-6 text-white shadow-sm sm:px-8 sm:py-8">
-        <svg aria-hidden="true" viewBox="0 0 260 200" fill="none" className="pointer-events-none absolute -right-10 -top-4 -z-10 w-48 opacity-60 sm:-right-2 sm:-top-3 sm:w-72 sm:opacity-100">
-          <circle cx="158" cy="102" r="87" stroke="#fbbf24" strokeOpacity=".24" />
-          <circle cx="158" cy="102" r="66" stroke="#fbbf24" strokeOpacity=".15" />
-          <path d="m97 105 57-25 60 25-59 25z" fill="#fcd34d" />
-          <path d="m97 105 58 25v54l-58-26z" fill="#d97706" />
-          <path d="m155 130 59-25v53l-59 26z" fill="#b45309" />
-          <path d="m120 94 59 26v17l14-6v-17l-59-26z" fill="#fff2bf" fillOpacity=".85" />
-          <path d="m119 66 37-16 39 16-38 17z" fill="#fef3c7" />
-          <path d="m119 66 38 17v36l-38-17z" fill="#fbbf24" />
-          <path d="m157 83 38-17v36l-38 17z" fill="#f59e0b" />
-          <path d="m134 60 38 17v13l10-4V73l-38-17z" fill="#fff8dc" />
-          <path d="M215 53v16m-8-8h16M91 73v10m-5-5h10" stroke="#fde68a" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        <p className="text-xs font-semibold text-amber-200 first-letter:uppercase sm:text-sm">{data}</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{usuario.nome}</h1>
-        <Link href="/categorias" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 sm:px-5">
-          Montar pedido <span aria-hidden="true">→</span>
-        </Link>
+      <section aria-labelledby="painel-home" className="anim-entrada rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4 lg:flex-1">
+            <AvatarUsuario usuario={usuario} tom="selecionado" tamanho="lg" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 first-letter:uppercase">{data}</p>
+              <h1 id="painel-home" className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Olá, {usuario.nome}</h1>
+              <p className="mt-1 text-sm font-medium text-slate-600">Painel de Operações</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 lg:shrink-0 lg:justify-end">
+            <Link href="/categorias" className="inline-flex min-h-11 items-center gap-3 rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 sm:px-5">
+              Montar pedido <span aria-hidden="true">→</span>
+            </Link>
+            <button type="button" className="inline-flex min-h-11 items-center gap-3 rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300 sm:px-5">
+              Venda direta <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
       </section>
 
       <section aria-labelledby="movimento-hoje">
@@ -77,8 +78,17 @@ export default async function HomePage() {
               <span aria-hidden="true" className="text-slate-500 transition-transform group-hover:translate-x-0.5">→</span>
             </Link>
           ))}
-          {/* Espaços reservados para as próximas features de gestão. */}
-          <div aria-hidden="true" className="min-h-[4.375rem] rounded-2xl border border-dashed border-slate-200 bg-white/60 sm:min-h-[4.625rem]" />
+          <Link href="/clientes" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 transition hover:border-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 sm:p-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700 group-hover:bg-amber-100">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-900">Clientes</span>
+              <span className="mt-0.5 block text-xs text-slate-600">Consultar, cadastrar e ver histórico</span>
+            </span>
+            <span aria-hidden="true" className="text-slate-500 transition-transform group-hover:translate-x-0.5">→</span>
+          </Link>
+          {/* Espaço reservado para a próxima feature de gestão. */}
           <div aria-hidden="true" className="min-h-[4.375rem] rounded-2xl border border-dashed border-slate-200 bg-white/60 sm:min-h-[4.625rem]" />
         </div>
       </section>

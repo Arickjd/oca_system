@@ -1,16 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { USUARIOS, buscarUsuario, type Usuario } from "@/lib/usuarios";
-
-// Avatar do usuário: inicia do nome ou um ícone de computador para a conta "Computador".
-function AvatarUsuario({ usuario, ativo, tom = "lista" }: { usuario: Usuario; ativo: boolean; tom?: "lista" | "selecionado" }) {
-  const classe = `grid h-8 w-8 shrink-0 place-items-center rounded-lg font-semibold ${ativo ? "bg-slate-900 text-white" : tom === "selecionado" ? "bg-slate-100 text-slate-500" : "bg-slate-100 text-slate-600"}`;
-  return <span aria-hidden="true" className={classe}>
-    {usuario.id === "computador"
-      ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>
-      : usuario.nome[0]}
-  </span>;
-}
+import { USUARIOS, buscarUsuario } from "@/lib/usuarios";
+import { AvatarUsuario } from "./AvatarUsuario";
 
 export function SeletorUsuario({ valor, onChange, desabilitado, invalido }: {
   valor: string; onChange: (id: string) => void; desabilitado: boolean; invalido: boolean;
