@@ -5,13 +5,21 @@ import * as postgres from "./postgres";
 import type { RegistroBanco, SnapshotBanco } from "./snapshotBanco";
 import type {
   Categoria,
+  Cliente,
   FormaPagamento,
   ItemPedido,
   PagamentoParcial,
   Pedido,
   Produto,
 } from "./types";
+import type { DadosCliente } from "./clientes";
 import { valorPago, valorRestante } from "./pagamentos";
+import {
+  MovimentoInvalido, validarMovimentoManual, saldoProduto, deltasDeEdicao,
+  movimentosDeSaida, movimentosDeEstorno, movimentosDeDelta,
+  type MovimentoEstoque,
+} from "./estoque";
+export { MovimentoInvalido } from "./estoque";
 import { dataValida, diaLocal } from "./periodoOrcamentos";
 import { formatBRL } from "./format";
 import type { EventoAuditoria } from "./auditoria";
@@ -70,7 +78,7 @@ export async function lerBancoCompleto(): Promise<SnapshotBanco> {
   if (postgres.usarPostgres()) return postgres.lerBancoCompleto();
   const run = writeChain.then(async () => {
     const registros: RegistroBanco[] = [];
-    for (const colecao of ["produtos", "categorias", "pedidos"]) {
+    for (const colecao of ["produtos", "categorias", "pedidos", "auditoria", "estoque_movimentos", "clientes"]) {
       const dados = await readData<(Record<string, unknown> & { id: string })[]>(`${colecao}.json`, []);
       for (const registro of dados) registros.push({ colecao, id: registro.id, dados: registro });
     }
@@ -101,6 +109,63 @@ export async function criarCategoria(nome: string): Promise<Categoria> {
     await fs.writeFile(dest + ".tmp", JSON.stringify([...categorias, categoria], null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
     return categoria;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+/* ------------------------------- Clientes ------------------------------ */
+
+export async function getClientes(): Promise<Cliente[]> {
+  const clientes = await readData<Cliente[]>("clientes.json", []);
+  return clientes.filter(c => !c.excluido_em).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+export async function getCliente(id: string): Promise<Cliente | undefined> {
+  if (postgres.usarPostgres()) {
+    const cliente = await postgres.buscar<Cliente>("clientes", id);
+    return cliente?.excluido_em ? undefined : cliente;
+  }
+  const clientes = await readData<Cliente[]>("clientes.json", []);
+  return clientes.find(c => c.id === id && !c.excluido_em);
+}
+
+export async function criarCliente(input: DadosCliente & { criado_por?: Cliente["criado_por"] }): Promise<Cliente> {
+  const cliente: Cliente = {
+    id: randomUUID(),
+    nome: input.nome,
+    telefone: input.telefone,
+    documento: input.documento,
+    observacao: input.observacao,
+    criado_por: input.criado_por,
+    created_at: new Date().toISOString(),
+  };
+  if (postgres.usarPostgres()) return postgres.inserir<Cliente>("clientes", cliente);
+  const run = writeChain.then(async () => {
+    const clientes = await readData<Cliente[]>("clientes.json", []);
+    clientes.push(cliente);
+    await ensureDir();
+    const dest = path.join(DATA_DIR, "clientes.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(clientes, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return cliente;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export async function atualizarCliente(id: string, input: DadosCliente): Promise<Cliente | undefined> {
+  const patch = { ...input, updated_at: new Date().toISOString() };
+  if (postgres.usarPostgres()) return postgres.atualizar<Cliente>("clientes", id, patch);
+  const run = writeChain.then(async () => {
+    const clientes = await readData<Cliente[]>("clientes.json", []);
+    const cliente = clientes.find(c => c.id === id && !c.excluido_em);
+    if (!cliente) return undefined;
+    Object.assign(cliente, patch);
+    const dest = path.join(DATA_DIR, "clientes.json");
+    await fs.writeFile(dest + ".tmp", JSON.stringify(clientes, null, 2), "utf8");
+    await fs.rename(dest + ".tmp", dest);
+    return cliente;
   });
   writeChain = run.catch(() => undefined);
   return run;
@@ -240,6 +305,141 @@ export async function getAuditoria(limite = 100): Promise<EventoAuditoria[]> {
   return [...eventos].sort((a, b) => b.em.localeCompare(a.em)).slice(0, Math.max(1, limite));
 }
 
+/* ------------------------------- Estoque ------------------------------- */
+
+const ARQ_ESTOQUE = "estoque_movimentos.json";
+
+function saldosLocais(produtos: Produto[]): Map<string, number | null> {
+  return new Map(produtos.filter(p => !p.excluido_em).map(p => [p.id, saldoProduto(p)]));
+}
+
+// Escreve saldos + movimentos dentro da writeChain do modo local (sem corrida).
+async function gravarEstoqueLocal(movimentos: MovimentoEstoque[]): Promise<void> {
+  if (!movimentos.length) return;
+  const produtos = await readData<Produto[]>("produtos.json", []);
+  const porId = new Map(produtos.map(p => [p.id, p]));
+  for (const movimento of movimentos) {
+    const produto = porId.get(movimento.produto_id);
+    if (produto) produto.estoque_atual = movimento.saldo_apos;
+  }
+  await ensureDir();
+  const destProdutos = path.join(DATA_DIR, "produtos.json");
+  await fs.writeFile(destProdutos + ".tmp", JSON.stringify(produtos, null, 2), "utf8");
+  await fs.rename(destProdutos + ".tmp", destProdutos);
+  const eventos = await readData<MovimentoEstoque[]>(ARQ_ESTOQUE, []);
+  eventos.push(...movimentos);
+  const dest = path.join(DATA_DIR, ARQ_ESTOQUE);
+  await fs.writeFile(dest + ".tmp", JSON.stringify(eventos, null, 2), "utf8");
+  await fs.rename(dest + ".tmp", dest);
+}
+
+// Postgres: lê saldos, gera movimentos e grava atomicamente; retry em conflito.
+async function aplicarEstoqueRemoto(gerar: (saldos: Map<string, number | null>) => MovimentoEstoque[]): Promise<MovimentoEstoque[]> {
+  for (let tentativa = 0; ; tentativa++) {
+    const saldos = await postgres.saldosEstoque();
+    const movimentos = gerar(new Map(saldos));
+    if (!movimentos.length) return [];
+    const esperados = new Map([...new Set(movimentos.map(m => m.produto_id))].map(id => [id, saldos.get(id)!]));
+    if (await postgres.aplicarMovimentosEstoque(movimentos, esperados)) return movimentos;
+    if (tentativa >= 7) throw new Error("O estoque foi alterado simultaneamente; movimentação não aplicada.");
+  }
+}
+
+// A venda já foi gravada quando a baixa roda: uma falha aqui não desfaz a venda,
+// mas fica registrada na auditoria e aparece em reconciliarEstoque().
+async function baixarEstoqueSeguro(alvo: string, gerar: (saldos: Map<string, number | null>) => MovimentoEstoque[]): Promise<void> {
+  try {
+    await aplicarEstoqueRemoto(gerar);
+  } catch (error) {
+    console.error("Falha ao movimentar estoque:", error);
+    await registrarAuditoria({
+      usuario: { id: "sistema", nome: "Sistema" },
+      acao: "estoque.falha",
+      titulo: "Falha na movimentação de estoque",
+      alvo,
+      resumo: "A venda foi gravada, mas o estoque não foi atualizado. Confira a conferência de estoque.",
+      detalhes: [{ rotulo: "Erro", valor: error instanceof Error ? error.message : String(error) }],
+    });
+  }
+}
+
+export interface FiltroMovimentos { produtoId?: string; limite?: number; antes?: string }
+
+// Histórico paginado: no Postgres o filtro roda no SQL, nunca carrega tudo.
+export async function getMovimentosEstoque(filtro: FiltroMovimentos = {}): Promise<MovimentoEstoque[]> {
+  if (postgres.usarPostgres()) return postgres.listarMovimentosEstoque(filtro);
+  const limite = Math.min(200, Math.max(1, Math.trunc(filtro.limite ?? 50)));
+  const eventos = await readData<MovimentoEstoque[]>(ARQ_ESTOQUE, []);
+  return eventos
+    .filter(m => (!filtro.produtoId || m.produto_id === filtro.produtoId) && (!filtro.antes || m.em < filtro.antes))
+    .sort((a, b) => b.em.localeCompare(a.em))
+    .slice(0, limite);
+}
+
+export interface ResultadoMovimento { produto: Produto; movimento: MovimentoEstoque }
+
+// Entrada (compra), ajuste de inventário ou perda/quebra, registradas manualmente.
+// A primeira movimentação de um produto sem saldo inicia o controle (base 0).
+export async function registrarMovimentoManual(produtoId: string, entrada: unknown, quem?: { id: string; nome: string }): Promise<ResultadoMovimento | undefined> {
+  const montar = (produto: Produto): ResultadoMovimento => {
+    const validado = validarMovimentoManual(entrada, produto.pack_quantidade);
+    const base = saldoProduto(produto) ?? 0;
+    const novoSaldo = validado.tipo === "ajuste" ? validado.unidades
+      : validado.tipo === "entrada" ? base + validado.unidades : base - validado.unidades;
+    if (!Number.isSafeInteger(novoSaldo)) throw new MovimentoInvalido("Saldo resultante inválido.");
+    const movimento: MovimentoEstoque = {
+      id: randomUUID(), produto_id: produto.id, produto_nome: produto.nome,
+      tipo: validado.tipo, quantidade: novoSaldo - base, saldo_apos: novoSaldo,
+      motivo: validado.motivo, registrado_por: quem, em: new Date().toISOString(),
+    };
+    return { produto: { ...produto, estoque_atual: novoSaldo }, movimento };
+  };
+  if (postgres.usarPostgres()) {
+    for (let tentativa = 0; ; tentativa++) {
+      const produto = await getProduto(produtoId);
+      if (!produto) return undefined;
+      const resultado = montar(produto);
+      if (await postgres.aplicarMovimentoManual(resultado.movimento, saldoProduto(produto))) return resultado;
+      // Concorrência otimista: relê o saldo e tenta de novo (5 disputas simultâneas cabem).
+      if (tentativa >= 7) throw new Error("O saldo foi alterado por outra operação. Tente novamente.");
+    }
+  }
+  const run = writeChain.then(async () => {
+    const produtos = await readData<Produto[]>("produtos.json", []);
+    const produto = produtos.find(p => p.id === produtoId && !p.excluido_em);
+    if (!produto) return undefined;
+    const resultado = montar(produto);
+    await gravarEstoqueLocal([resultado.movimento]);
+    return resultado;
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
+export interface DivergenciaEstoque { produto_id: string; produto_nome: string; saldo: number; soma_ledger: number; diferenca: number }
+
+// Conferência: saldo gravado × soma do ledger. Vazio = estoque consistente.
+export async function reconciliarEstoque(): Promise<DivergenciaEstoque[]> {
+  const produtos = await getProdutos();
+  let somas: Map<string, number>;
+  if (postgres.usarPostgres()) {
+    somas = await postgres.somaLedgerEstoque();
+  } else {
+    const eventos = await readData<MovimentoEstoque[]>(ARQ_ESTOQUE, []);
+    somas = new Map();
+    for (const evento of eventos) somas.set(evento.produto_id, (somas.get(evento.produto_id) ?? 0) + evento.quantidade);
+  }
+  const divergencias: DivergenciaEstoque[] = [];
+  for (const produto of produtos) {
+    const saldo = saldoProduto(produto);
+    const soma = somas.get(produto.id) ?? 0;
+    if (saldo === null && soma === 0) continue;
+    const diferenca = (saldo ?? 0) - soma;
+    if (diferenca !== 0) divergencias.push({ produto_id: produto.id, produto_nome: produto.nome, saldo: saldo ?? 0, soma_ledger: soma, diferenca });
+  }
+  return divergencias;
+}
+
 
 export async function criarProduto(input: Pick<Produto, "nome" | "preco_pack" | "pack_quantidade" | "categoria_id" | "custo_pack"> & Partial<Pick<Produto, "descricao" | "imagem_url">>) {
   if (postgres.usarPostgres()) return postgres.inserir<Produto>("produtos", {
@@ -275,7 +475,15 @@ export async function getPedido(id: string): Promise<Pedido | undefined> {
 
 // Exclusão lógica preserva a numeração e impede que uma reimportação restaure o orçamento.
 export async function excluirPedido(id: string, permitirVenda = false): Promise<boolean> {
-  if (postgres.usarPostgres()) return postgres.excluirPedido(id, permitirVenda);
+  if (postgres.usarPostgres()) {
+    const anterior = await postgres.buscar<Pedido>("pedidos", id);
+    const excluiu = await postgres.excluirPedido(id, permitirVenda);
+    // Venda excluída devolve ao estoque o que a baixa havia retirado.
+    if (excluiu && anterior?.status_pagamento === "finalizado") {
+      await baixarEstoqueSeguro(`Venda #${anterior.numero} (excluída)`, saldos => movimentosDeEstorno(anterior, saldos));
+    }
+    return excluiu;
+  }
   const run = writeChain.then(async () => {
     const pedidos = await readData<Pedido[]>("pedidos.json", []);
     const pedido = pedidos.find(p => p.id === id && !p.excluido_em);
@@ -284,6 +492,10 @@ export async function excluirPedido(id: string, permitirVenda = false): Promise<
     const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
+    if (pedido.status_pagamento === "finalizado") {
+      const movimentos = movimentosDeEstorno(pedido, saldosLocais(await readData<Produto[]>("produtos.json", [])));
+      await gravarEstoqueLocal(movimentos);
+    }
     return true;
   });
   writeChain = run.catch(() => undefined);
@@ -389,7 +601,9 @@ export async function finalizarPagamento(id: string, forma: FormaPagamento, revi
   if (postgres.usarPostgres()) {
     const atual = await postgres.buscar<Pedido>("pedidos", id);
     if (!atual || atual.excluido_em || atual.status_pagamento === "finalizado") return undefined;
-    return postgres.finalizarPagamento(id, patchDe(atual), revisao);
+    const finalizado = await postgres.finalizarPagamento(id, patchDe(atual), revisao);
+    if (finalizado) await baixarEstoqueSeguro(`Venda #${finalizado.numero}`, saldos => movimentosDeSaida(finalizado, saldos, finalizadoPor));
+    return finalizado;
   }
 
   const run = writeChain.then(async () => {
@@ -400,6 +614,9 @@ export async function finalizarPagamento(id: string, forma: FormaPagamento, revi
     const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
+    // Baixa do estoque: só produtos com saldo controlado; dentro da mesma fila.
+    const movimentos = movimentosDeSaida(pedido, saldosLocais(await readData<Produto[]>("produtos.json", [])), finalizadoPor);
+    await gravarEstoqueLocal(movimentos);
     return pedido;
   });
   writeChain = run.catch(() => undefined);
@@ -416,6 +633,7 @@ export interface NovoItem {
 }
 
 export interface NovoPedido {
+  cliente_id?: string;
   cliente_nome?: string;
   telefone?: string;
   observacao?: string;
@@ -434,7 +652,7 @@ export function validarEdicaoPedido(body: unknown): EdicaoPedido {
   if (!body || typeof body !== "object") throw new EdicaoInvalida("Dados inválidos.");
   const b = body as EdicaoPedido;
   if (!Number.isSafeInteger(b.revisao) || b.revisao < 0 ||
-    [b.cliente_nome, b.telefone, b.observacao].some(v => v !== undefined && typeof v !== "string") ||
+    [b.cliente_id, b.cliente_nome, b.telefone, b.observacao].some(v => v !== undefined && typeof v !== "string") ||
     !Array.isArray(b.itens) || b.itens.length === 0) throw new EdicaoInvalida("Revise os dados e inclua pelo menos um produto.");
   const ids = new Set<string>();
   let totalCentavos = 0;
@@ -460,6 +678,8 @@ export async function editarPedido(id: string, body: unknown, permitirVenda = fa
     const pedidos = remoto ? [] : await readData<Pedido[]>("pedidos.json", []);
     const anterior = remoto ? await getPedido(id) : pedidos.find(p => p.id === id && !p.excluido_em);
     if (!anterior || (!permitirVenda && anterior.status_pagamento === "finalizado") || (anterior.revisao ?? 0) !== input.revisao) return undefined;
+    const eraVendaFinalizada = anterior.status_pagamento === "finalizado";
+    const itensAntigos = [...anterior.itens];
     const catalogo = new Map((await getProdutos()).map(p => [p.id, p]));
     const itens: ItemPedido[] = input.itens.map(it => {
       const antigo = it.id ? anterior.itens.find(a => a.id === it.id) : undefined;
@@ -485,15 +705,28 @@ export async function editarPedido(id: string, body: unknown, permitirVenda = fa
       const pago = valorPago(anterior);
       if (total < pago) throw new EdicaoInvalida(`O novo total (${formatBRL(total)}) ficaria abaixo do valor já recebido (${formatBRL(pago)}). Ajuste os recebimentos antes de editar.`);
     }
-    const patch = { cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
+    const patch = { cliente_id: input.cliente_id === undefined ? anterior.cliente_id : (input.cliente_id.trim() || undefined),
+      cliente_nome: (input.cliente_nome ?? "").trim(), telefone: (input.telefone ?? "").trim(), observacao: (input.observacao ?? "").trim(),
       itens, valor_total: total, lucro_bruto: itens.every(it => it.custo_unitario != null)
         ? (Math.round(total * 100) - itens.reduce((s, it) => s + Math.round(it.custo_unitario! * it.quantidade * 100), 0)) / 100 : null,
       updated_at: new Date().toISOString(), revisao: input.revisao + 1 };
-    if (remoto) return postgres.editarPedido(id, patch, input.revisao, permitirVenda);
+    if (remoto) {
+      const editado = await postgres.editarPedido(id, patch, input.revisao, permitirVenda);
+      // Edição de venda finalizada ajusta o estoque só pela diferença de unidades.
+      if (editado && anterior.status_pagamento === "finalizado") {
+        const deltas = deltasDeEdicao(anterior.itens, editado.itens);
+        await baixarEstoqueSeguro(`Venda #${editado.numero} (editada)`, saldos => movimentosDeDelta(editado, deltas, saldos, undefined, undefined, randomUUID));
+      }
+      return editado;
+    }
     Object.assign(anterior, patch);
     const dest = PEDIDOS_LOCAL;
     await fs.writeFile(dest + ".tmp", JSON.stringify(pedidos, null, 2), "utf8");
     await fs.rename(dest + ".tmp", dest);
+    if (eraVendaFinalizada) {
+      const deltas = deltasDeEdicao(itensAntigos, anterior.itens);
+      await gravarEstoqueLocal(movimentosDeDelta(anterior, deltas, saldosLocais(await readData<Produto[]>("produtos.json", [])), undefined, undefined, randomUUID));
+    }
     return anterior;
   });
   writeChain = run.catch(() => undefined);
@@ -541,6 +774,7 @@ export async function createPedido(input: NovoPedido): Promise<Pedido> {
   const novo: Pedido = {
     id: randomUUID(),
     numero,
+    cliente_id: input.cliente_id?.trim() || undefined,
     cliente_nome: (input.cliente_nome ?? "").trim(),
     telefone: (input.telefone ?? "").trim(),
     observacao: (input.observacao ?? "").trim(),

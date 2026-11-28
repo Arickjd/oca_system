@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import type { Pedido } from "./types";
 import type { SnapshotBanco } from "./snapshotBanco";
+import type { MovimentoEstoque } from "./estoque";
 
 export function usarPostgres() {
   if (process.env.DATABASE_URL) return true;
@@ -38,6 +39,101 @@ export async function listar<T>(colecao: string): Promise<T[]> {
   const rows = await sql().query("SELECT dados FROM oca_registros WHERE colecao = $1", [colecao]);
   return rows.map(row => row.dados as T);
 }
+
+/* ------------------------------- Estoque ------------------------------- */
+
+// Ledger filtrado/paginado no SQL: o histórico cresce sem limite e nunca é
+// carregado inteiro para a memória da função (padrão listar() não serve aqui).
+export async function listarMovimentosEstoque(filtro: { produtoId?: string; limite?: number; antes?: string }): Promise<MovimentoEstoque[]> {
+  const limite = Math.min(200, Math.max(1, Math.trunc(filtro.limite ?? 50)));
+  const rows = await sql().query(`
+    SELECT dados FROM oca_registros
+    WHERE colecao = 'estoque_movimentos'
+      AND ($1::text IS NULL OR dados->>'produto_id' = $1)
+      AND ($2::text IS NULL OR dados->>'em' < $2)
+    ORDER BY dados->>'em' DESC, id DESC
+    LIMIT $3
+  `, [filtro.produtoId ?? null, filtro.antes ?? null, limite]);
+  return rows.map(row => row.dados as MovimentoEstoque);
+}
+
+// Saldos atuais lidos numa única instrução (sem dados de catálogo extensos).
+export async function saldosEstoque(): Promise<Map<string, number>> {
+  const rows = await sql().query(`
+    SELECT id, (dados->>'estoque_atual')::numeric AS saldo FROM oca_registros
+    WHERE colecao = 'produtos' AND dados->>'estoque_atual' IS NOT NULL AND dados->>'excluido_em' IS NULL
+  `, []);
+  return new Map(rows.map(row => [row.id as string, Number(row.saldo)]));
+}
+
+// Baixa/estorno em lote: uma instrução trava os produtos envolvidos (FOR UPDATE),
+// confere os saldos esperados e grava saldos + movimentos atomicamente. Se outra
+// instância mexeu no saldo entre a leitura e a escrita, nada é gravado (retry no chamador).
+export async function aplicarMovimentosEstoque(
+  movimentos: MovimentoEstoque[],
+  esperados: Map<string, number>,
+): Promise<boolean> {
+  if (!movimentos.length) return true;
+  const ids = [...esperados.keys()];
+  const esperadoJson = Object.fromEntries(esperados);
+  const novoJson = Object.fromEntries(ids.map(id => {
+    const ultimo = [...movimentos].reverse().find(m => m.produto_id === id)!;
+    return [id, ultimo.saldo_apos];
+  }));
+  const rows = await sql().query(`
+    WITH alvo AS (
+      SELECT id, dados FROM oca_registros
+      WHERE colecao = 'produtos' AND id = ANY($1::text[]) AND dados->>'excluido_em' IS NULL
+      FOR UPDATE
+    ), conferencia AS (
+      SELECT COUNT(*) AS faltando FROM jsonb_each_text($2::jsonb) esperado(id, valor)
+      WHERE NOT EXISTS (SELECT 1 FROM alvo WHERE alvo.id = esperado.id AND (alvo.dados->>'estoque_atual')::numeric = esperado.valor::numeric)
+    ), atualizados AS (
+      UPDATE oca_registros p SET dados = jsonb_set(p.dados, '{estoque_atual}', to_jsonb((($3::jsonb)->>p.id)::numeric))
+      FROM alvo WHERE p.colecao = 'produtos' AND p.id = alvo.id AND (SELECT faltando FROM conferencia) = 0
+      RETURNING p.id
+    ), inseridos AS (
+      INSERT INTO oca_registros (colecao, id, dados)
+      SELECT 'estoque_movimentos', m->>'id', m FROM jsonb_array_elements($4::jsonb) m
+      WHERE (SELECT faltando FROM conferencia) = 0
+      RETURNING id
+    )
+    SELECT (SELECT COUNT(*) FROM atualizados)::integer AS produtos, (SELECT COUNT(*) FROM inseridos)::integer AS movimentos
+  `, [ids, JSON.stringify(esperadoJson), JSON.stringify(novoJson), JSON.stringify(movimentos)]);
+  return rows[0].produtos === ids.length && rows[0].movimentos === movimentos.length;
+}
+
+// Movimento manual (entrada/ajuste/perda) de um único produto, atômico.
+export async function aplicarMovimentoManual(movimento: MovimentoEstoque, esperado: number | null): Promise<boolean> {
+  const rows = await sql().query(`
+    WITH alvo AS (
+      SELECT id, dados FROM oca_registros
+      WHERE colecao = 'produtos' AND id = $1 AND dados->>'excluido_em' IS NULL
+        AND (($2::numeric IS NULL AND dados->>'estoque_atual' IS NULL)
+          OR (dados->>'estoque_atual')::numeric = $2::numeric)
+      FOR UPDATE
+    ), atualizado AS (
+      UPDATE oca_registros p SET dados = jsonb_set(p.dados, '{estoque_atual}', to_jsonb($3::numeric))
+      FROM alvo WHERE p.colecao = 'produtos' AND p.id = alvo.id RETURNING p.id
+    ), inserido AS (
+      INSERT INTO oca_registros (colecao, id, dados)
+      SELECT 'estoque_movimentos', $4, $5::jsonb WHERE EXISTS (SELECT 1 FROM atualizado)
+      RETURNING id
+    )
+    SELECT EXISTS (SELECT 1 FROM inserido) AS ok
+  `, [movimento.produto_id, esperado, movimento.saldo_apos, movimento.id, JSON.stringify(movimento)]);
+  return rows[0].ok === true;
+}
+
+// Soma do ledger por produto, para reconciliação saldo × histórico.
+export async function somaLedgerEstoque(): Promise<Map<string, number>> {
+  const rows = await sql().query(`
+    SELECT dados->>'produto_id' AS produto_id, SUM((dados->>'quantidade')::numeric) AS soma
+    FROM oca_registros WHERE colecao = 'estoque_movimentos' GROUP BY 1
+  `, []);
+  return new Map(rows.map(row => [row.produto_id as string, Number(row.soma)]));
+}
+
 
 export async function lerBancoCompleto(): Promise<SnapshotBanco> {
   // Uma única instrução lê as duas tabelas na mesma visão consistente do banco.

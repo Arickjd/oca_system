@@ -19,10 +19,11 @@ async function main() {
     { colecao: "pedidos", id: "orc-1", dados: pedido },
     { colecao: "config", id: "principal", dados: { distribuidora_nome: "OCA Distribuidora", pack_padrao: 6, whatsapp: "001234" } },
     { colecao: "config", id: "auth-tentativas:teste", dados: { quantidade: 2, ate: 123456 } },
+    { colecao: "estoque_movimentos", id: "mov-1", dados: { produto_id: "p-1", produto_nome: "Produto histórico", tipo: "entrada", quantidade: 12, saldo_apos: 12, motivo: "Compra", registrado_por: { id: "jardel", nome: "Jardel" }, em: "2026-10-25T03:10:00Z" } },
   ] };
   const buffer = await gerarBancoXlsx(snapshot, "Jardel");
   const wb = new ExcelJS.Workbook(); await wb.xlsx.load(buffer);
-  assert.deepEqual(wb.worksheets.map(s => s.name), ["Resumo", "Produtos", "Categorias", "Orçamentos", "Itens", "Configurações", "Contadores", "Registros brutos"]);
+  assert.deepEqual(wb.worksheets.map(s => s.name), ["Resumo", "Produtos", "Categorias", "Orçamentos", "Itens", "Estoque", "Movimentações de estoque", "Configurações", "Contadores", "Registros brutos"]);
   assert.equal(wb.getWorksheet("Produtos").getCell("C2").value, dados.nome);
   assert.equal(wb.getWorksheet("Produtos").getCell("C2").type, ExcelJS.ValueType.String);
   assert.equal(wb.getWorksheet("Produtos").getCell("G2").value, 99.9);
@@ -32,6 +33,8 @@ async function main() {
   assert.equal(wb.getWorksheet("Orçamentos").getCell("G2").value, "Gisele");
   assert.equal(wb.getWorksheet("Orçamentos").getCell("I2").value, null);
   assert.equal(wb.getWorksheet("Itens").getCell("L2").value, 89.9);
+  assert.equal(wb.getWorksheet("Movimentações de estoque").getCell("E2").value, 12);
+  assert.equal(wb.getWorksheet("Movimentações de estoque").getCell("K2").value, "Jardel");
   assert.equal(wb.getWorksheet("Contadores").getCell("B2").value, "9007199254740993");
   const raw = wb.getWorksheet("Registros brutos");
   for (const registro of snapshot.registros) {

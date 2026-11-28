@@ -15,6 +15,7 @@ export interface Produto {
   preco_pack: number; // preço do fardo/atacado
   custo_pack?: number | null; // custo por pacote; zero/ausente = desconhecido
   excluido_em?: string;
+  estoque_atual?: number; // saldo em unidades; ausente = estoque não controlado
   pack_quantidade: number; // qtd de unidades no pacote (ex: 6)
   unidade: string; // unidade de venda: un, caixa, fardo...
   imagem_url: string;
@@ -52,9 +53,22 @@ export interface PagamentoParcial {
   registrado_por?: { id: string; nome: string };
 }
 
+export interface Cliente {
+  id: string;
+  nome: string;
+  telefone: string;
+  documento?: string;
+  observacao?: string;
+  criado_por?: { id: string; nome: string };
+  created_at: string;
+  updated_at?: string;
+  excluido_em?: string;
+}
+
 export interface Pedido {
   id: string;
   numero: number;
+  cliente_id?: string;
   cliente_nome: string;
   telefone: string;
   observacao: string;
