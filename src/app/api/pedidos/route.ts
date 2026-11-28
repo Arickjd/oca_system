@@ -1,6 +1,6 @@
 import { verificarAcessoApi, obterSessao } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
-import { getPedidos, createPedido, registrarAuditoria, type NovoItem } from "@/lib/db";
+import { getCliente, getPedidos, createPedido, registrarAuditoria, type NovoItem } from "@/lib/db";
 import { formatBRL } from "@/lib/format";
 import { alvoDoPedido } from "@/lib/auditoria";
 import { revalidarHistorico } from "@/lib/revalidarHistorico";
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const itensRaw = Array.isArray(body?.itens) ? body.itens : [];
 
-  if (["cliente_nome", "telefone", "observacao"].some(key => body?.[key] !== undefined && typeof body[key] !== "string") ||
+  if (["cliente_id", "cliente_nome", "telefone", "observacao"].some(key => body?.[key] !== undefined && typeof body[key] !== "string") ||
       itensRaw.some((it: Record<string, unknown>) => !it ||
         typeof it.produto_id !== "string" || !it.produto_id.trim() ||
         typeof it.produto_nome !== "string" || !it.produto_nome.trim() ||
@@ -54,9 +54,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+  const clienteId = typeof body?.cliente_id === "string" ? body.cliente_id.trim() : "";
+  const cliente = clienteId ? await getCliente(clienteId) : undefined;
+  if (clienteId && !cliente) {
+    return NextResponse.json({ error: "O cliente selecionado não existe mais. Escolha outro ou digite apenas o nome." }, { status: 400 });
+  }
   const pedido = await createPedido({
-    cliente_nome: body?.cliente_nome,
-    telefone: body?.telefone,
+    cliente_id: clienteId || undefined,
+    cliente_nome: typeof body?.cliente_nome === "string" && body.cliente_nome.trim() ? body.cliente_nome : cliente?.nome,
+    telefone: typeof body?.telefone === "string" && body.telefone.trim() ? body.telefone : cliente?.telefone,
     observacao: body?.observacao,
     criado_por: { id: sessao.usuario.id, nome: sessao.usuario.nome },
     itens,

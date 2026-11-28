@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SalvarProduto } from "@/components/SalvarProduto";
+import { CampoNomeCliente } from "@/components/CampoNomeCliente";
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { imagemDoProduto } from "@/lib/imagensProduto";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
-import type { Produto } from "@/lib/types";
+import type { Cliente, Produto } from "@/lib/types";
 
 export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | "custo_pack" | "preco_pack">[] }) {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          cliente_id: clienteSelecionado?.id,
           cliente_nome: nome,
           telefone,
           observacao,
@@ -244,18 +247,24 @@ export default function Carrinho({ produtos }: { produtos: Pick<Produto, "id" | 
       <section className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col gap-3">
         <div>
           <h2 className="font-semibold text-slate-800">Dados do cliente</h2>
-          <p className="text-xs text-slate-500">Todos os campos são opcionais.</p>
+          <p className="text-xs text-slate-500">Opcional. Selecione um cliente cadastrado ou digite apenas o nome.</p>
         </div>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-slate-600">Nome</span>
-          <input
+        <div className="flex flex-col gap-1">
+          <label htmlFor="cliente-nome" className="text-sm text-slate-600">Nome</label>
+          <CampoNomeCliente
             id="cliente-nome"
-            value={nome}
-            onChange={(event) => setNome(event.target.value)}
-            placeholder="Nome do cliente"
-            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500"
+            valor={nome}
+            cliente={clienteSelecionado}
+            onChange={(valor) => { setNome(valor); if (clienteSelecionado) setClienteSelecionado(null); }}
+            onSelecionar={(cliente) => {
+              setNome(cliente.nome);
+              setClienteSelecionado(cliente);
+              if (cliente.telefone) setTelefone(cliente.telefone);
+            }}
+            onDesvincular={() => setClienteSelecionado(null)}
+            disabled={enviando}
           />
-        </label>
+        </div>
         <label className="flex flex-col gap-1">
           <span className="text-sm text-slate-600">Telefone</span>
           <input

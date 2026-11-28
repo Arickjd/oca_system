@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getPedido, getProdutos } from "@/lib/db";
+import { getCliente, getPedido, getProdutos } from "@/lib/db";
 import { EditarOrcamento } from "@/components/EditarOrcamento";
 import { exigirSessao } from "@/lib/auth-servidor";
 
@@ -14,5 +14,6 @@ export default async function EditarPage({ params, searchParams }: { params: Pro
   const { retorno } = await searchParams;
   const lista = venda ? "/vendas" : "/orcamentos";
   const seguro = typeof retorno === "string" && (retorno === lista || retorno.startsWith(`${lista}?`)) ? retorno : lista;
-  return <EditarOrcamento pedido={pedido} produtos={(await getProdutos()).filter(p => p.ativo)} retorno={seguro} />;
+  const clienteVinculado = pedido.cliente_id ? await getCliente(pedido.cliente_id) : undefined;
+  return <EditarOrcamento pedido={pedido} produtos={(await getProdutos()).filter(p => p.ativo)} retorno={seguro} clienteVinculado={clienteVinculado ?? null} />;
 }

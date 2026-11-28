@@ -2,19 +2,21 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Pedido, Produto } from "@/lib/types";
+import type { Cliente, Pedido, Produto } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { produtoCombina } from "@/lib/busca";
+import { CampoNomeCliente } from "@/components/CampoNomeCliente";
 
 type Linha = { chave: string; id?: string; produto_id: string; produto_nome: string; modo: "pacote" | "unidade"; pack_quantidade: string; quantidade: string; preco_unitario: string; preco_original: number; custo_unitario: number | null };
 const campo = "mt-1 w-full min-w-0 rounded-xl border border-slate-300 bg-white p-2.5 text-sm";
 
-export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido; produtos: Produto[]; retorno: string }) {
+export function EditarOrcamento({ pedido, produtos, retorno, clienteVinculado }: { pedido: Pedido; produtos: Produto[]; retorno: string; clienteVinculado?: Cliente | null }) {
   const router = useRouter();
   const venda = pedido.status_pagamento === "finalizado";
   const [cliente, setCliente] = useState(pedido.cliente_nome);
   const [telefone, setTelefone] = useState(pedido.telefone);
   const [observacao, setObservacao] = useState(pedido.observacao);
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(clienteVinculado ?? null);
   const [itens, setItens] = useState<Linha[]>(pedido.itens.map(it => ({ chave: it.id, id: it.id, produto_id: it.produto_id,
     produto_nome: it.produto_nome, modo: it.modo, pack_quantidade: String(it.pack_quantidade ?? 1), quantidade: String(it.quantidade), preco_unitario: String(it.preco_unitario), preco_original: it.preco_original ?? it.preco_unitario,
     custo_unitario: typeof it.custo_unitario === "number" ? it.custo_unitario : null })));
@@ -35,7 +37,7 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
     setSalvando(true); setErro("");
     try {
       const res = await fetch(`/api/pedidos/${encodeURIComponent(pedido.id)}`, { method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revisao: pedido.revisao ?? 0, cliente_nome: cliente, telefone, observacao,
+        body: JSON.stringify({ revisao: pedido.revisao ?? 0, cliente_id: clienteSelecionado?.id ?? "", cliente_nome: cliente, telefone, observacao,
           itens: itens.map(it => ({ id: it.id, produto_id: it.produto_id, produto_nome: it.produto_nome, modo: it.modo,
             pack_quantidade: Number(it.pack_quantidade), quantidade: Number(it.quantidade), preco_unitario: Number(it.preco_unitario) })) }) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || "Não foi possível salvar."); }
@@ -47,7 +49,10 @@ export function EditarOrcamento({ pedido, produtos, retorno }: { pedido: Pedido;
       <p className="mt-2 text-sm text-slate-500">O catálogo, o número e a data original serão preservados.</p></div>
     <fieldset disabled={salvando} className="flex flex-col gap-5">
       <section className="rounded-2xl border bg-white p-4"><h2 className="font-semibold">Dados do cliente</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm">Nome<input value={cliente} onChange={e => setCliente(e.target.value)} className={campo} /></label>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="text-sm"><label htmlFor="editar-cliente-nome">Nome</label><CampoNomeCliente id="editar-cliente-nome" valor={cliente} cliente={clienteSelecionado}
+          onChange={(valor) => { setCliente(valor); if (clienteSelecionado) setClienteSelecionado(null); }}
+          onSelecionar={(selecionado) => { setCliente(selecionado.nome); setClienteSelecionado(selecionado); if (selecionado.telefone) setTelefone(selecionado.telefone); }}
+          onDesvincular={() => setClienteSelecionado(null)} inputClassName={campo} /></div>
         <label className="text-sm">Telefone<input type="tel" value={telefone} onChange={e => setTelefone(e.target.value)} className={campo} /></label></div>
         <label className="mt-3 block text-sm">Observação<textarea rows={2} value={observacao} onChange={e => setObservacao(e.target.value)} className={campo} /></label>
       </section>

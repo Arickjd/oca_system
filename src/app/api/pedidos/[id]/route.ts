@@ -1,6 +1,6 @@
 import { obterSessao, verificarAcessoApi } from "@/lib/auth-servidor";
 import { NextRequest, NextResponse } from "next/server";
-import { getPedido, excluirPedido, finalizarPagamento, editarPedido, registrarPagamentoParcial, registrarAuditoria, EdicaoInvalida, PagamentoInvalido } from "@/lib/db";
+import { getCliente, getPedido, excluirPedido, finalizarPagamento, editarPedido, registrarPagamentoParcial, registrarAuditoria, EdicaoInvalida, PagamentoInvalido } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { revalidarHistorico } from "@/lib/revalidarHistorico";
 import type { FormaPagamento } from "@/lib/types";
@@ -18,7 +18,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const admin = sessao?.usuario.papel === "admin";
   const antes = await getPedido(id);
   try {
-    const pedido = await editarPedido(id, await req.json().catch(() => null), admin);
+    const body = await req.json().catch(() => null);
+    if (body && typeof body === "object" && typeof body.cliente_id === "string" && body.cliente_id.trim()) {
+      const cliente = await getCliente(body.cliente_id.trim());
+      if (!cliente) return NextResponse.json({ error: "O cliente selecionado não existe mais. Escolha outro ou digite apenas o nome." }, { status: 400 });
+      if (typeof body.cliente_nome !== "string" || !body.cliente_nome.trim()) body.cliente_nome = cliente.nome;
+    }
+    const pedido = await editarPedido(id, body, admin);
     if (!pedido) {
       if (!admin && (await getPedido(id))?.status_pagamento === "finalizado") {
         return NextResponse.json({ error: "Apenas o administrador pode editar vendas." }, { status: 403 });
