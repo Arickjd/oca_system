@@ -1,12 +1,16 @@
-import Link from "next/link";
+import { exigirSessao } from "@/lib/auth-servidor";
+import { getProdutos, getCategorias, getMovimentosEstoque } from "@/lib/db";
+import { consolidarSaldos } from "@/lib/estoque";
+import { GerenciarEstoque } from "@/components/GerenciarEstoque";
 
-export default function GerenciarEstoquePage() {
-  return (
-    <div className="grid min-h-[60dvh] place-items-center py-6">
-      <section className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-6 text-center">
-        <p className="font-semibold text-slate-700">em desenvolvimento...</p>
-        <Link href="/home" className="mt-5 inline-block rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Voltar</Link>
-      </section>
-    </div>
-  );
+export const dynamic = "force-dynamic";
+
+export default async function GerenciarEstoquePage({ searchParams }: { searchParams: Promise<{ produto?: string }> }) {
+  const { usuario } = await exigirSessao();
+  const { produto: produtoId } = await searchParams;
+  const [produtos, categorias, movimentos] = await Promise.all([
+    getProdutos(), getCategorias(), getMovimentosEstoque({ produtoId: produtoId || undefined, limite: 50 }),
+  ]);
+  const nomeFiltrado = produtoId ? produtos.find(p => p.id === produtoId)?.nome : undefined;
+  return <GerenciarEstoque saldos={consolidarSaldos(produtos)} categorias={categorias} movimentos={movimentos} admin={usuario.papel === "admin"} produtoFiltrado={nomeFiltrado} />;
 }

@@ -3,6 +3,7 @@
 import { useCart } from "@/lib/cart";
 import { formatBRL } from "@/lib/format";
 import { imagemDoProduto } from "@/lib/imagensProduto";
+import { saldoProduto, situacaoDoSaldo } from "@/lib/estoque";
 import type { Produto } from "@/lib/types";
 import { RentabilidadeProduto } from "./RentabilidadeProduto";
 
@@ -81,6 +82,9 @@ export function ProdutoCard({
 }) {
   const { quantidadeDe, adicionar, definirQuantidade } = useCart();
   const qtdPack = quantidadeDe(produto.id);
+  // Saldo informativo: nunca bloqueia a venda (a baixa ocorre na efetivação).
+  const saldo = saldoProduto(produto);
+  const situacao = situacaoDoSaldo(saldo);
 
   const addPacote = () =>
     adicionar({
@@ -108,6 +112,14 @@ export function ProdutoCard({
           </h3>
           {produto.descricao && (
             <p className="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap break-words">{produto.descricao}</p>
+          )}
+          {situacao !== "nao-controlado" && (
+            <p className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+              situacao === "negativo" || situacao === "zerado" ? "bg-red-100 text-red-800"
+                : situacao === "baixo" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
+            }`}>
+              Estoque: {saldo} un{situacao === "negativo" ? " · negativo" : situacao === "zerado" ? " · zerado" : situacao === "baixo" ? " · baixo" : ""}
+            </p>
           )}
         </div>
       </div>
