@@ -2,8 +2,11 @@ import Link from "next/link";
 import { getPedidos } from "@/lib/db";
 import { FiltroDiasPendentes } from "@/components/FiltroDiasPendentes";
 import { ListaOrcamentos } from "@/components/ListaOrcamentos";
+import { CartaoResumo } from "@/components/CartaoResumo";
+import { formatBRL } from "@/lib/format";
 import { dataCurta, dataValida, diaLocal, filtrarPeriodo, resolverPeriodo } from "@/lib/periodoOrcamentos";
 import { separarHistorico, diasPendentes } from "@/lib/historicoOrcamentos";
+import { valorRestante } from "@/lib/pagamentos";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +22,27 @@ export default async function OrcamentosPage({ searchParams }: { searchParams: P
   const { abertos } = separarHistorico(todos);
   const pedidos = filtrarPeriodo(abertos, periodo);
   const retorno = intervalo ? `/orcamentos?periodo=${intervalo}` : dia && dia !== hoje ? `/orcamentos?dia=${dia}` : "/orcamentos";
+  const total = pedidos.reduce((soma, pedido) => soma + valorRestante(pedido), 0);
   return <section className="flex flex-col gap-5 pb-6">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h1 className="text-2xl font-bold text-slate-900">Orçamentos</h1><p className="mt-1 text-sm text-slate-500">Orçamentos em aberto, aguardando pagamento ou confirmação.</p></div>
-      <Link href="/produtos" className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white">+ Novo orçamento</Link>
+    <div className="anim-entrada flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-slate-900 text-amber-300 shadow-sm">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-5"><path d="M6 2h9l4 4v16l-3-2-3 2-3-2-4 2V2Z" /><path d="M9 9h6M9 13h6" /></svg>
+        </span>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">Financeiro</p>
+          <h1 className="text-2xl font-bold leading-tight text-slate-900">Orçamentos</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Em aberto, aguardando pagamento ou confirmação.</p>
+        </div>
+      </div>
+      <Link href="/produtos" className="inline-flex min-h-11 items-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">+ Novo orçamento</Link>
     </div>
-    <FiltroDiasPendentes dias={diasPendentes(todos)} hoje={hoje} diaSelecionado={dia} intervalo={intervalo} />
-    {intervalo && <p className="text-sm font-medium text-slate-600">{dataCurta(periodo.inicio)}{periodo.inicio !== periodo.fim && ` a ${dataCurta(periodo.fim)}`} · {pedidos.length} pendente(s)</p>}
+    <div className="grid grid-cols-2 gap-2.5">
+      <CartaoResumo rotulo="Em aberto" valor={String(pedidos.length)} detalhe={pedidos.length === 1 ? "orçamento no período" : "orçamentos no período"} icone="M6 2h9l4 4v16l-3-2-3 2-3-2-4 2V2Z" tom="amber" atraso={60} />
+      <CartaoResumo rotulo="Total a receber" valor={formatBRL(total)} detalhe="saldo no período" icone="M2 6h20v12H2zM12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4M6 12h.01M18 12h.01" tom="emerald" atraso={100} />
+    </div>
+    <div className="anim-entrada" style={{ animationDelay: "120ms" }}><FiltroDiasPendentes dias={diasPendentes(todos)} hoje={hoje} diaSelecionado={dia} intervalo={intervalo} /></div>
+    {intervalo && <p className="anim-entrada text-sm font-medium text-slate-600" style={{ animationDelay: "160ms" }}>{dataCurta(periodo.inicio)}{periodo.inicio !== periodo.fim && ` a ${dataCurta(periodo.fim)}`} · {pedidos.length} {pedidos.length === 1 ? "pendente" : "pendentes"}</p>}
     <ListaOrcamentos pedidos={pedidos} retorno={retorno} />
   </section>;
 }
